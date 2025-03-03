@@ -1,0 +1,83 @@
+body {
+    background-color: #f8f9fa;
+}
+.graph-box {
+    width: 80%;
+    height: 300px;
+    margin: 20px auto;
+    background: #e9ecef;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-size: 18px;
+    font-weight: bold;
+}
+.modal {
+    display: none;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.recipe-scroll-container {
+    white-space: nowrap;
+    overflow-x: auto;
+    padding: 10px;
+}
+
+.card {
+    display: inline-block;
+    width: 220px;
+}
+.recipe-scroll {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.scroll-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    white-space: nowrap;
+    width: 80%;
+    padding: 10px;
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
+    -ms-overflow-style: none; /* Hide scrollbar in IE/Edge */
+}
+
+.scroll-container::-webkit-scrollbar {
+    display: none; /* Hide scrollbar in Chrome/Safari */
+}
+
+.recipe-card {
+    flex: 0 0 auto;
+    width: 250px;
+    margin: 10px;
+}
+
+.scroll-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 10px;
+    border-radius: 50%;
+}
+
+.scroll-btn:hover {
+    background-color: #0056b3;
+}

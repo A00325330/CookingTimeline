@@ -1,0 +1,27 @@
+<configuration>
+    <!-- Console Logging -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%level] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File for Skipped Rows -->
+    <appender name="SKIPPED_ROWS" class="ch.qos.logback.core.FileAppender">
+        <file>logs/skipped_rows.log</file>
+        <append>false</append> <!-- Ensures the file is cleared on every run -->
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Logger for Skipped Rows -->
+    <logger name="SkippedRowsLogger" level="WARN" additivity="false">
+        <appender-ref ref="SKIPPED_ROWS"/>
+    </logger>
+
+    <!-- Root Logger (General Application Logging) -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
