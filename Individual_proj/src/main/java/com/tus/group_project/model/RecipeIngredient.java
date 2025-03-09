@@ -21,6 +21,22 @@ public class RecipeIngredient {
     @JsonIgnore  // ✅ Prevents infinite recursion
     private Recipe recipe;
 
+    @Column(nullable = false)
     private String name;
+
+    @Column(nullable = false)
     private int cookingTime;
+
+    @Column(nullable = false) // ✅ Ensure cookingMethod is always set
+    private String cookingMethod;
+
+    @Override
+    public String toString() {
+        return "RecipeIngredient{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", cookingTime=" + cookingTime +
+                ", cookingMethod='" + cookingMethod + '\'' +
+                '}';
+    }
 }

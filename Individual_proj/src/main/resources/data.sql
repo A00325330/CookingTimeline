@@ -12,16 +12,17 @@ INSERT INTO user_roles (user_id, role) VALUES
 INSERT INTO recipes (id, name, description, cooking_time, user_id, cooking_method, visibility, start_time, finish_time) VALUES 
 (1, 'Classic Chicken Curry', 'A delicious homemade chicken curry.', 45, 2, 'BOIL', 'PUBLIC', NOW(), NOW() + INTERVAL 45 MINUTE);
 
-INSERT INTO recipe_ingredients (recipe_id, name, cooking_time) VALUES 
-(1, 'Chicken', 45),
-(1, 'Onions', 10),
-(1, 'Garlic', 5),
-(1, 'Ginger', 5),
-(1, 'Tomatoes', 8),
-(1, 'Curry Powder', 2),
-(1, 'Coconut Milk', 15),
-(1, 'Salt', 1),
-(1, 'Pepper', 1);
+INSERT INTO recipe_ingredients (recipe_id, name, cooking_time, cooking_method) VALUES 
+(1, 'Chicken', 45, 'Boil'),
+(1, 'Onions', 10, 'Sauté'),
+(1, 'Garlic', 5, 'Sauté'),
+(1, 'Ginger', 5, 'Sauté'),
+(1, 'Tomatoes', 8, 'Simmer'),
+(1, 'Curry Powder', 2, 'Mix'),
+(1, 'Coconut Milk', 15, 'Simmer'),
+(1, 'Salt', 1, 'Mix'),
+(1, 'Pepper', 1, 'Mix');
+
 
 
 -- Insert recipe steps
