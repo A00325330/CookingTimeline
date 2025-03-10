@@ -1,23 +1,45 @@
 const API_URL = "http://localhost:8081/api/auth";
-const RECIPES_URL = "http://localhost:8081/api/recipes";
 
-// Open modal
+// ✅ Opens authentication modal (Login/Register)
 function openAuthModal(type) {
-    document.getElementById("auth-title").textContent = type;
-    document.getElementById("auth-modal").style.display = "block";
-    document.getElementById("auth-submit").setAttribute("data-action", type);
+    const authTitle = document.getElementById("auth-title");
+    const authModal = document.getElementById("auth-modal");
+    const authSubmit = document.getElementById("auth-submit");
+
+    if (!authTitle || !authModal || !authSubmit) {
+        console.warn("⚠️ Auth modal elements not found. Check your HTML structure.");
+        return;
+    }
+
+    authTitle.textContent = type;
+    authModal.style.display = "block";
+    authSubmit.setAttribute("data-action", type);
 }
 
-// Close modal
+// ✅ Closes authentication modal
 function closeAuthModal() {
-    document.getElementById("auth-modal").style.display = "none";
+    const authModal = document.getElementById("auth-modal");
+    if (authModal) {
+        authModal.style.display = "none";
+    } else {
+        console.warn("⚠️ Auth modal not found. Cannot close.");
+    }
 }
 
-// Handle login or register
+// ✅ Handles login or registration
 async function handleAuth() {
-    const action = document.getElementById("auth-submit").getAttribute("data-action").toLowerCase();
-    const email = document.getElementById("auth-email").value.trim();
-    const password = document.getElementById("auth-password").value;
+    const authSubmit = document.getElementById("auth-submit");
+    const emailInput = document.getElementById("auth-email");
+    const passwordInput = document.getElementById("auth-password");
+
+    if (!authSubmit || !emailInput || !passwordInput) {
+        console.error("❌ Required auth elements not found. Cannot proceed.");
+        return;
+    }
+
+    const action = authSubmit.getAttribute("data-action").toLowerCase();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
 
     if (!email || !password) {
         alert("Please enter both email and password.");
@@ -40,11 +62,10 @@ async function handleAuth() {
         if (action === "login" && data.token) {
             localStorage.setItem("jwt", data.token);
             updateUI();
-            alert("Login successful!");
+            alert("✅ Login successful!");
 
-            // Redirect only if login is required
-            const userRole = getUserRole();
-            if (userRole === "ROLE_ADMIN") {
+            // Redirect admin users
+            if (getUserRole() === "ROLE_ADMIN") {
                 window.location.href = "admin.html";
             }
         } else {
@@ -57,13 +78,13 @@ async function handleAuth() {
     closeAuthModal();
 }
 
-// Logout function
+// ✅ Logs the user out
 function logoutUser() {
     localStorage.removeItem("jwt");
     updateUI();
 }
 
-// Extract user role from JWT
+// ✅ Extracts user role from JWT
 function getUserRole() {
     const token = localStorage.getItem("jwt");
     if (!token) return null;
@@ -72,35 +93,57 @@ function getUserRole() {
         const tokenPayload = JSON.parse(atob(token.split(".")[1]));
         return tokenPayload.role || null;
     } catch (error) {
-        console.error("Error decoding JWT:", error);
+        console.error("❌ Error decoding JWT:", error);
         return null;
     }
 }
 
-// Update UI state
+// ✅ Updates UI based on authentication status
 function updateUI() {
     const token = localStorage.getItem("jwt");
     const isAdmin = getUserRole() === "ROLE_ADMIN";
 
-    document.getElementById("login-btn").style.display = token ? "none" : "inline-block";
-    document.getElementById("register-btn").style.display = token ? "none" : "inline-block";
-    document.getElementById("logout-btn").style.display = token ? "inline-block" : "none";
+    function toggleVisibility(id, shouldShow) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.style.display = shouldShow ? "inline-block" : "none";
+        }
+    }
 
+    toggleVisibility("login-btn", !token);
+    toggleVisibility("register-btn", !token);
+    toggleVisibility("logout-btn", !!token);
+    toggleVisibility("admin-btn", isAdmin);
+
+    // ✅ Attach admin page navigation
     const adminBtn = document.getElementById("admin-btn");
     if (adminBtn) {
-        adminBtn.style.display = isAdmin ? "inline-block" : "none";
         adminBtn.addEventListener("click", () => {
             window.location.href = "admin.html";
         });
     }
 }
 
-// Initialize UI
-document.addEventListener("DOMContentLoaded", updateUI);
+// ✅ Attach event listeners safely
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("✅ DOM Loaded - Attaching Auth Event Listeners...");
 
-// Event listeners
-document.getElementById("login-btn").addEventListener("click", () => openAuthModal("Login"));
-document.getElementById("register-btn").addEventListener("click", () => openAuthModal("Register"));
-document.getElementById("auth-submit").addEventListener("click", handleAuth);
-document.getElementById("auth-close").addEventListener("click", closeAuthModal);
-document.getElementById("logout-btn").addEventListener("click", logoutUser);
+    function safeAddListener(id, event, handler) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener(event, handler);
+            console.log(`✅ Attached ${event} listener to #${id}`);
+        } else {
+            console.warn(`⚠️ Element #${id} not found. Skipping event listener.`);
+        }
+    }
+
+    safeAddListener("login-btn", "click", () => openAuthModal("Login"));
+    safeAddListener("register-btn", "click", () => openAuthModal("Register"));
+    safeAddListener("auth-submit", "click", handleAuth);
+    safeAddListener("auth-close", "click", closeAuthModal);
+    safeAddListener("logout-btn", "click", logoutUser);
+});
+
+// ✅ Initialize UI on page load
+document.addEventListener("DOMContentLoaded", updateUI);

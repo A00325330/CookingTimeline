@@ -1,5 +1,6 @@
 import { graphRecipe } from "./recipeGraph.js"; // ✅ Import graphing function
 
+
 document.addEventListener("DOMContentLoaded", function () {
     console.log("✅ DOM Loaded - Fetching Public Recipes...");
     fetchPublicRecipes();
@@ -8,17 +9,17 @@ document.addEventListener("DOMContentLoaded", function () {
 /**
  * Fetches public recipes from the API and populates the dropdown.
  */
-async function fetchPublicRecipes() {
+export async function fetchPublicRecipes() {
     try {
         const response = await fetch("http://localhost:8081/api/recipes/public");
-        console.log("API Response Status:", response.status); // ✅ Debugging
+        console.log("API Response Status:", response.status);
 
         if (!response.ok) {
             throw new Error(`Failed to fetch recipes! Status: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log("✅ Fetched Public Recipes:", data); // ✅ Debugging API response
+        console.log("✅ Fetched Public Recipes:", data);
 
         const recipes = data._embedded?.recipeList || [];
         const dropdown = document.getElementById("recipe-select");
@@ -28,12 +29,8 @@ async function fetchPublicRecipes() {
             return;
         }
 
-        if (recipes.length === 0) {
-            dropdown.innerHTML = `<option value="">No recipes available</option>`;
-            return;
-        }
-
         dropdown.innerHTML = `<option value="">-- Select a Recipe --</option>`; // Reset dropdown
+
         recipes.forEach(recipe => {
             const option = document.createElement("option");
             option.value = recipe.id;
@@ -41,15 +38,7 @@ async function fetchPublicRecipes() {
             dropdown.appendChild(option);
         });
 
-        dropdown.disabled = false; // ✅ Enable dropdown once recipes load
-
-        // ✅ Add event listener for selection
-        dropdown.addEventListener("change", function () {
-            const selectedRecipeId = dropdown.value;
-            if (selectedRecipeId) {
-                fetchAndGraphRecipe(selectedRecipeId);
-            }
-        });
+        dropdown.disabled = false; // Enable dropdown once recipes load
 
         console.log("✅ Dropdown successfully populated.");
     } catch (error) {
@@ -58,10 +47,11 @@ async function fetchPublicRecipes() {
     }
 }
 
+
 /**
  * Fetches the selected recipe details and graphs it.
  */
-async function fetchAndGraphRecipe(recipeId) {
+export async function fetchAndGraphRecipe(recipeId) {
     try {
         console.log(`🔍 Fetching details for Recipe ID: ${recipeId}...`);
 

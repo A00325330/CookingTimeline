@@ -45,6 +45,8 @@ public class SecurityConfig {
                 // ✅ Allow anyone to create & modify temporary recipes
                 .requestMatchers(HttpMethod.POST, "/api/recipes/temp", "/api/recipes/temp/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/recipes/temp/**").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/api/recipes/temp/{id}/**").permitAll()  // ✅ Allow DELETE temp recipes
+
 
                 // 🔐 All other recipe endpoints require auth
                 .requestMatchers(HttpMethod.GET, "/api/recipes/**").authenticated()
