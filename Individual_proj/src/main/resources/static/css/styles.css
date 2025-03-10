@@ -81,3 +81,34 @@ body {
 .scroll-btn:hover {
     background-color: #0056b3;
 }
+/* Basic styling for the .modal and .modal-content */
+.modal {
+  display: none; /* hidden by default */
+  position: fixed;
+  z-index: 9999;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  max-width: 90%;
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#recipe-step-1,
+#recipe-step-2 {
+  /* optional spacing or styling */
+}
+
+#ingredientList ul {
+  list-style: square;
+  padding-left: 20px;
+}

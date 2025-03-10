@@ -5,8 +5,9 @@ import com.tus.group_project.model.*;
 import com.tus.group_project.service.IRecipeService;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.CollectionModel;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,13 +27,21 @@ public class RecipeController {
     }
 
     /**
-     * ✅ Create a new temporary recipe for non-logged-in users.
+     * ✅ Create a new temporary recipe for NON-logged-in users ONLY.
+     * If user is logged in, return 403.
      */
     @PostMapping("/temp")
-    public ResponseEntity<EntityModel<Recipe>> createTemporaryRecipe() {
+    public ResponseEntity<EntityModel<Recipe>> createTemporaryRecipe(@AuthenticationPrincipal User user) {
+        // If user is logged in, forbid creating a temp recipe.
+        if (user != null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        // Create or retrieve an existing temporary recipe
         Recipe tempRecipe = recipeService.createOrGetTemporaryRecipe();
         return ResponseEntity.ok(buildRecipeModel(tempRecipe));
     }
+
     /**
      * ✅ Get the temporary recipe (for non-logged-in users).
      */
@@ -45,25 +54,40 @@ public class RecipeController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-
     /**
      * ✅ Add an ingredient to a temporary recipe.
      */
     @PostMapping("/temp/{id}/ingredients")
-    public ResponseEntity<EntityModel<Recipe>> addIngredientToTempRecipe(@PathVariable Long id,
-                                                                         @RequestBody RecipeDto.IngredientDto ingredientDto) {
-        RecipeIngredient ingredient = new RecipeIngredient(null, null, ingredientDto.getName(), ingredientDto.getCookingTime(), ingredientDto.getCookingMethod());
+    public ResponseEntity<EntityModel<Recipe>> addIngredientToTempRecipe(
+            @PathVariable Long id,
+            @RequestBody RecipeDto.IngredientDto ingredientDto
+    ) {
+        RecipeIngredient ingredient = new RecipeIngredient(
+                null,
+                null,
+                ingredientDto.getName(),
+                ingredientDto.getCookingTime(),
+                ingredientDto.getCookingMethod()
+        );
         Recipe updatedRecipe = recipeService.addIngredientToTemporaryRecipe(id, ingredient);
-        return updatedRecipe != null ? ResponseEntity.ok(buildRecipeModel(updatedRecipe)) : ResponseEntity.notFound().build();
+        return (updatedRecipe != null)
+                ? ResponseEntity.ok(buildRecipeModel(updatedRecipe))
+                : ResponseEntity.notFound().build();
     }
 
     /**
-     * ✅ Create a new recipe with individual ingredient cooking methods.
+     * ✅ Create a new normal recipe (for logged-in users ONLY).
+     * If user == null (not logged in), return 403.
      */
     @PostMapping
     public ResponseEntity<EntityModel<Recipe>> createRecipe(
             @RequestBody RecipeDto recipeDto,
-            @AuthenticationPrincipal User user) {
+            @AuthenticationPrincipal User user
+    ) {
+        // If user is not logged in, forbid normal recipe creation.
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         Recipe newRecipe = new Recipe();
         newRecipe.setName(recipeDto.getName());
@@ -71,6 +95,7 @@ public class RecipeController {
         newRecipe.setSteps(recipeDto.getSteps());
         newRecipe.setVisibility(recipeDto.getVisibility());
 
+        // Convert Ingredient Dto into Entities
         List<RecipeIngredient> ingredientEntities = recipeDto.getIngredients().stream()
                 .map(ingredientDto -> new RecipeIngredient(
                         null,
@@ -82,11 +107,15 @@ public class RecipeController {
                 .toList();
         newRecipe.setIngredients(ingredientEntities);
 
-        newRecipe.setCookingTime(ingredientEntities.stream()
-                .mapToInt(RecipeIngredient::getCookingTime)
-                .max()
-                .orElse(0));
+        // Calculate cooking time from the longest ingredient
+        newRecipe.setCookingTime(
+                ingredientEntities.stream()
+                        .mapToInt(RecipeIngredient::getCookingTime)
+                        .max()
+                        .orElse(0)
+        );
 
+        // Save the recipe with the logged-in user
         Recipe savedRecipe = recipeService.createRecipe(newRecipe, user);
         return ResponseEntity.ok(buildRecipeModel(savedRecipe));
     }
@@ -100,8 +129,12 @@ public class RecipeController {
                 .map(this::buildRecipeModel)
                 .collect(Collectors.toList());
 
-        return ResponseEntity.ok(CollectionModel.of(recipeModels,
-                linkTo(methodOn(RecipeController.class).getPublicRecipes()).withSelfRel()));
+        return ResponseEntity.ok(
+                CollectionModel.of(
+                        recipeModels,
+                        linkTo(methodOn(RecipeController.class).getPublicRecipes()).withSelfRel()
+                )
+        );
     }
 
     /**
@@ -118,14 +151,15 @@ public class RecipeController {
         return ResponseEntity.notFound().build();
     }
 
-
     /**
-     * ✅ Update a recipe.
+     * ✅ Update a recipe (only if it belongs to the logged-in user).
      */
     @PutMapping("/{id}")
-    public ResponseEntity<EntityModel<Recipe>> updateRecipe(@PathVariable Long id,
-                                                            @RequestBody RecipeDto recipeDto,
-                                                            @AuthenticationPrincipal User user) {
+    public ResponseEntity<EntityModel<Recipe>> updateRecipe(
+            @PathVariable Long id,
+            @RequestBody RecipeDto recipeDto,
+            @AuthenticationPrincipal User user
+    ) {
         Optional<Recipe> existingRecipe = recipeService.getRecipeById(id, user);
 
         if (existingRecipe.isPresent()) {
@@ -145,7 +179,12 @@ public class RecipeController {
                     .toList();
             recipe.setIngredients(ingredientEntities);
 
-            recipe.setCookingTime(recipeService.calculateRecipeCookTime(recipe.getId()));
+            // Recalculate cooking time
+            recipe.setCookingTime(
+                    recipeService.calculateRecipeCookTime(recipe.getId())
+            );
+
+            // Update the recipe
             Recipe updatedRecipe = recipeService.updateRecipe(id, recipe, user);
             return ResponseEntity.ok(buildRecipeModel(updatedRecipe));
         }
@@ -154,10 +193,13 @@ public class RecipeController {
     }
 
     /**
-     * ✅ Delete a recipe.
+     * ✅ Delete a recipe (only if it belongs to the logged-in user).
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRecipe(@PathVariable Long id, @AuthenticationPrincipal User user) {
+    public ResponseEntity<?> deleteRecipe(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user
+    ) {
         recipeService.deleteRecipe(id, user);
         return ResponseEntity.noContent().build();
     }
@@ -166,9 +208,11 @@ public class RecipeController {
      * ✅ Helper method to build HATEOAS links for a recipe.
      */
     private EntityModel<Recipe> buildRecipeModel(Recipe recipe) {
-        EntityModel<Recipe> recipeModel = EntityModel.of(recipe,
+        EntityModel<Recipe> recipeModel = EntityModel.of(
+                recipe,
                 linkTo(methodOn(RecipeController.class).getPublicRecipeById(recipe.getId())).withSelfRel(),
-                linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes"));
+                linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes")
+        );
 
         recipeModel.add(
                 linkTo(methodOn(RecipeController.class).updateRecipe(recipe.getId(), new RecipeDto(), null))
@@ -178,8 +222,10 @@ public class RecipeController {
         );
 
         if (recipe.getUser() != null) {
-            recipeModel.add(linkTo(methodOn(UserController.class).getUserById(recipe.getUser().getId()))
-                    .withRel("author"));
+            recipeModel.add(
+                    linkTo(methodOn(UserController.class).getUserById(recipe.getUser().getId()))
+                            .withRel("author")
+            );
         }
 
         return recipeModel;

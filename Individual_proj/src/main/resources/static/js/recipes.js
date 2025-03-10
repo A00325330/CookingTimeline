@@ -63,19 +63,30 @@ async function fetchPublicRecipes() {
  */
 async function fetchAndGraphRecipe(recipeId) {
     try {
-        console.log(`Fetching details for Recipe ID: ${recipeId}...`);
-        const response = await fetch(`http://localhost:8081/api/recipes/public/${recipeId}`);
-        
+        console.log(`🔍 Fetching details for Recipe ID: ${recipeId}...`);
+
+        let response = await fetch(`http://localhost:8081/api/recipes/public/${recipeId}`);
+
+        // ✅ If it's NOT found, try fetching as a TEMP recipe
+        if (response.status === 404) {
+            console.warn(`⚠️ Recipe ID ${recipeId} not found as public, checking temporary storage...`);
+            response = await fetch(`http://localhost:8081/api/recipes/temp/${recipeId}`);
+        }
+
+        // ❌ If it's still not found, return an error
         if (!response.ok) {
             throw new Error(`Failed to fetch recipe! Status: ${response.status}`);
         }
 
+        // ✅ Convert to JSON
         const recipe = await response.json();
         console.log("✅ Fetched Recipe Data:", recipe);
 
-        graphRecipe(recipe); // ✅ Call graphing function
+        // ✅ Graph the fetched recipe
+        graphRecipe(recipe);
     } catch (error) {
         console.error("❌ Error fetching recipe details:", error.message);
-        alert(error.message);
+        alert(`Error fetching recipe: ${error.message}`);
     }
 }
+

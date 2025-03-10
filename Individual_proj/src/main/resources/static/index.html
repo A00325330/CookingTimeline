@@ -1,61 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipe App</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/styles.css">
+  <meta charset="UTF-8" />
+  <title>Multi-Step Modal Example</title>
+  <!-- Bootstrap CSS -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+  />
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-    <div class="container text-center mt-5">
-        <h1>Welcome to the Recipe App</h1>
-        <div id="auth-buttons">
-            <button id="login-btn" class="btn btn-primary">Login</button>
-            <button id="register-btn" class="btn btn-secondary">Register</button>
-            <button id="logout-btn" class="btn btn-danger" style="display: none;">Logout</button>
-            <button id="admin-btn" class="btn btn-warning" style="display: none;">Admin Page</button>
+  <div class="container mt-4">
+    <h1 class="text-center">Recipe App</h1>
 
-            <!-- Authentication Modal -->
-            <div id="auth-modal" class="modal">
-                <div class="modal-content">
-                    <h2 id="auth-title">Login</h2>
-                    <input type="email" id="auth-email" placeholder="Email">
-                    <input type="password" id="auth-password" placeholder="Password">
-                    <button id="auth-submit" class="btn btn-success">Submit</button>
-                    <button id="auth-close" class="btn btn-danger">Close</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Timer Display -->
-        <h3 id="timer-display" class="text-center">Total Cooking Time: 0 mins</h3>
-
-        <!-- Recipe Selection Dropdown -->
-        <select id="recipe-select" class="form-select">
-            <option value="">-- Select a Recipe --</option>
-        </select>
-
-        <h3 id="time-left-display" class="text-center">Time Left: 0:00</h3>
-
-        <!-- Start Cooking Button -->
-        <button id="start-timer-btn" class="btn btn-success" disabled>Start Cooking</button>
-
-        <!-- Graph Container -->
-        <div id="chart-container" class="mt-4">
-            <h3>Recipe Cooking Timeline</h3>
-            <div id="ganttChart"></div> <!-- Changed from canvas to div for D3.js -->
-        </div>
+    <!-- Existing Auth Buttons (Optional) -->
+    <div id="auth-buttons" class="text-center mb-3">
+      <button id="login-btn" class="btn btn-primary">Login</button>
+      <button id="register-btn" class="btn btn-secondary">Register</button>
+      <button id="logout-btn" class="btn btn-danger" style="display: none;">Logout</button>
+      <button id="admin-btn" class="btn btn-warning" style="display: none;">Admin Page</button>
     </div>
 
-    <!-- JavaScript Files -->
-    <script src="js/script.js"></script>
-    <script src="js/auth.js"></script>
-    <script type="module" src="js/recipes.js"></script>
-    <script type="module" src="js/recipeGraph.js"></script> <!-- ✅ Added -->
-    
-    <!-- External Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <!-- Button to open multi-step modal -->
+    <div class="text-center">
+      <button id="openNewRecipeModal" class="btn btn-info">
+        Create New Recipe
+      </button>
+    </div>
+
+    <!-- Existing UI -->
+    <div class="text-center mt-3">
+      <!-- Timer Display -->
+      <h3 id="timer-display">Total Cooking Time: 0 mins</h3>
+
+      <!-- Recipe Selection Dropdown -->
+      <select id="recipe-select" class="form-select">
+        <option value="">-- Select a Recipe --</option>
+      </select>
+
+      <h3 id="time-left-display" class="text-center">Time Left: 0:00</h3>
+
+      <!-- Start Cooking Button -->
+      <button id="start-timer-btn" class="btn btn-success" disabled>
+        Start Cooking
+      </button>
+    </div>
+
+    <!-- D3 Chart Container -->
+    <div id="chart-container" class="mt-4">
+      <h3>Recipe Cooking Timeline</h3>
+      <div id="ganttChart"></div>
+    </div>
+  </div>
+
+  <!-- 1️⃣ Multi-Step Modal (hidden by default) -->
+  <div id="recipe-modal" class="modal">
+    <div class="modal-content">
+      <!-- STEP 1: Enter Recipe Name -->
+      <div id="recipe-step-1">
+        <h3>Enter Your Recipe Name</h3>
+        <input
+          type="text"
+          id="recipeNameInput"
+          class="form-control mb-2"
+          placeholder="e.g. Spaghetti Bolognese"
+        />
+        <button id="recipeNameNextBtn" class="btn btn-primary">
+          Next →
+        </button>
+      </div>
+
+      <!-- STEP 2: Add Ingredients (initially hidden) -->
+      <div id="recipe-step-2" style="display: none;">
+        <h4>Add Ingredients</h4>
+        <input
+          type="text"
+          id="ingredientName"
+          class="form-control mb-2"
+          placeholder="Ingredient Name"
+        />
+        <input
+          type="number"
+          id="ingredientTime"
+          class="form-control mb-2"
+          placeholder="Cooking Time (mins)"
+        />
+        <input
+          type="text"
+          id="ingredientMethod"
+          class="form-control mb-2"
+          placeholder="Cooking Method"
+        />
+        <button id="addIngredientBtn" class="btn btn-info mb-3">
+          Add Ingredient
+        </button>
+
+        <div id="ingredientList" class="mt-2"></div>
+
+        <button id="finishRecipeBtn" class="btn btn-success mt-3">
+          Finish
+        </button>
+      </div>
+
+      <button id="closeRecipeModal" class="btn btn-danger mt-2">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Existing Scripts -->
+  <script src="js/script.js"></script>
+  <script src="js/auth.js"></script>
+  <script type="module" src="js/recipes.js"></script>
+  <script type="module" src="js/recipeGraph.js"></script>
+
+  <!-- 2️⃣ Our new multi-step logic -->
+  <script src="js/newRecipeFlow.js"></script>
+
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 </body>
 </html>
