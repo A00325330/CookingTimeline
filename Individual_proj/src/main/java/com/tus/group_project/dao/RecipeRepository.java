@@ -18,6 +18,9 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     // ✅ Get a public recipe by ID (guest-friendly)
     Optional<Recipe> findByIdAndVisibility(Long id, Visibility visibility);
 
+    // ✅ Add this method to find a temporary recipe
+    Optional<Recipe> findFirstByIsTemporaryTrue();
+    
     // ✅ Get a private recipe by ID (only if owned by user)
     Optional<Recipe> findByIdAndUser(Long id, User user);
 

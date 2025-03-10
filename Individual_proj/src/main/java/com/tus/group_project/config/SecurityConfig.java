@@ -26,32 +26,35 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+    
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable()) 
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // ✅ Public endpoints
-                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                .requestMatchers("/", "/index.html","/login.html","/admin.html", "/recipes.html", "/css/**", "/js/**").permitAll()
+                // ✅ Allow anyone to create and modify temporary recipes
+                .requestMatchers(HttpMethod.POST, "/api/recipes/temp", "/api/recipes/temp/**").permitAll()
                 
-                // 🔐 Recipes: Allow logged-in users to view recipes
-                .requestMatchers(HttpMethod.GET, "/api/recipes/public","/api/recipes/public/**").permitAll()  // ✅ Allow public access
+                // ✅ Allow public access to public recipes
+                .requestMatchers(HttpMethod.GET, "/api/recipes/public","/api/recipes/public/**","/api/recipes/temp/**").permitAll()  
+                
+                // 🔐 Recipes: Allow logged-in users to view/edit/delete recipes
                 .requestMatchers(HttpMethod.GET, "/api/recipes/**").authenticated()
-
-                
-                // 🔐 Only allow owners/admins to edit/delete their recipes
                 .requestMatchers(HttpMethod.PUT, "/api/recipes/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/recipes/**").authenticated()
+                .requestMatchers("/api/recipes/temp/**").permitAll() // ✅ Allow access to temporary recipes
+
                 
-                // 🔐 ✅ Allow ADMIN to access user-related endpoints
+                // 🔐 Only ADMIN can access user-related endpoints
                 .requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN") 
-                
+
                 // 🔐 Protect all other endpoints
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
-    }}
+    }
+
+}

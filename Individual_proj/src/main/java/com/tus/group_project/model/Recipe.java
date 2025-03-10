@@ -39,10 +39,11 @@ public class Recipe extends RepresentationModel<Recipe> {
     private Visibility visibility = Visibility.PRIVATE; // Default to PRIVATE
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id", nullable = true) // ✅ Allow null for temporary recipes
     private User user;
 
     private LocalDateTime startTime;
-   
     private LocalDateTime finishTime;
+
+    private boolean isTemporary = false; // ✅ New field to indicate if the recipe is temporary
 }

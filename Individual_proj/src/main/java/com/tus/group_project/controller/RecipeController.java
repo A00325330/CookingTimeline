@@ -26,6 +26,38 @@ public class RecipeController {
     }
 
     /**
+     * ✅ Create a new temporary recipe for non-logged-in users.
+     */
+    @PostMapping("/temp")
+    public ResponseEntity<EntityModel<Recipe>> createTemporaryRecipe() {
+        Recipe tempRecipe = recipeService.createOrGetTemporaryRecipe();
+        return ResponseEntity.ok(buildRecipeModel(tempRecipe));
+    }
+    /**
+     * ✅ Get the temporary recipe (for non-logged-in users).
+     */
+    @GetMapping("/temp/{id}")
+    public ResponseEntity<EntityModel<Recipe>> getTemporaryRecipe(@PathVariable Long id) {
+        Optional<Recipe> recipe = recipeService.getTemporaryRecipeById(id);
+
+        return recipe.map(this::buildRecipeModel)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+
+    /**
+     * ✅ Add an ingredient to a temporary recipe.
+     */
+    @PostMapping("/temp/{id}/ingredients")
+    public ResponseEntity<EntityModel<Recipe>> addIngredientToTempRecipe(@PathVariable Long id,
+                                                                         @RequestBody RecipeDto.IngredientDto ingredientDto) {
+        RecipeIngredient ingredient = new RecipeIngredient(null, null, ingredientDto.getName(), ingredientDto.getCookingTime(), ingredientDto.getCookingMethod());
+        Recipe updatedRecipe = recipeService.addIngredientToTemporaryRecipe(id, ingredient);
+        return updatedRecipe != null ? ResponseEntity.ok(buildRecipeModel(updatedRecipe)) : ResponseEntity.notFound().build();
+    }
+
+    /**
      * ✅ Create a new recipe with individual ingredient cooking methods.
      */
     @PostMapping
@@ -35,27 +67,26 @@ public class RecipeController {
 
         Recipe newRecipe = new Recipe();
         newRecipe.setName(recipeDto.getName());
+        newRecipe.setDescription(recipeDto.getDescription());
+        newRecipe.setSteps(recipeDto.getSteps());
+        newRecipe.setVisibility(recipeDto.getVisibility());
 
-        // ✅ Convert DTO ingredients into `RecipeIngredient` objects
         List<RecipeIngredient> ingredientEntities = recipeDto.getIngredients().stream()
                 .map(ingredientDto -> new RecipeIngredient(
-                        null, 
-                        newRecipe, 
-                        ingredientDto.getName(), 
-                        ingredientDto.getCookingTime(), 
-                        ingredientDto.getCookingMethod()  // ✅ Store cooking method per ingredient
+                        null,
+                        newRecipe,
+                        ingredientDto.getName(),
+                        ingredientDto.getCookingTime(),
+                        ingredientDto.getCookingMethod()
                 ))
                 .toList();
         newRecipe.setIngredients(ingredientEntities);
-        newRecipe.setSteps(recipeDto.getSteps());
 
-        // ✅ Default visibility to PRIVATE unless admin sets PUBLIC
-        if (recipeDto.getVisibility() == Visibility.PUBLIC && !user.isAdmin()) {
-            return ResponseEntity.status(403).body(null);
-        }
-        newRecipe.setVisibility(recipeDto.getVisibility());
+        newRecipe.setCookingTime(ingredientEntities.stream()
+                .mapToInt(RecipeIngredient::getCookingTime)
+                .max()
+                .orElse(0));
 
-        // ✅ Save recipe & calculate cooking time
         Recipe savedRecipe = recipeService.createRecipe(newRecipe, user);
         return ResponseEntity.ok(buildRecipeModel(savedRecipe));
     }
@@ -74,35 +105,23 @@ public class RecipeController {
     }
 
     /**
-     * ✅ Get a single public recipe by ID (Includes cooking methods per ingredient).
+     * ✅ Get a single public recipe by ID.
      */
     @GetMapping("/public/{id}")
     public ResponseEntity<EntityModel<Recipe>> getPublicRecipeById(@PathVariable Long id) {
         Optional<Recipe> recipe = recipeService.getRecipeById(id);
 
         if (recipe.isPresent() && recipe.get().getVisibility() == Visibility.PUBLIC) {
-            // ✅ Ensure ingredients include cooking methods
-            recipe.get().getIngredients().forEach(ingredient -> {
-                System.out.println("Ingredient: " + ingredient.getName() + 
-                                   ", Cooking Time: " + ingredient.getCookingTime() + 
-                                   " mins, Method: " + ingredient.getCookingMethod());
-            });
-
             return ResponseEntity.ok(buildRecipeModel(recipe.get()));
         }
 
         return ResponseEntity.notFound().build();
     }
 
-    /**
-     * ✅ Update a recipe (including cooking methods per ingredient).
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRecipe(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        recipeService.deleteRecipe(id, user);
-        return ResponseEntity.noContent().build();
-    }
 
+    /**
+     * ✅ Update a recipe.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<EntityModel<Recipe>> updateRecipe(@PathVariable Long id,
                                                             @RequestBody RecipeDto recipeDto,
@@ -112,29 +131,35 @@ public class RecipeController {
         if (existingRecipe.isPresent()) {
             Recipe recipe = existingRecipe.get();
             recipe.setName(recipeDto.getName());
+            recipe.setDescription(recipeDto.getDescription());
             recipe.setSteps(recipeDto.getSteps());
 
-            // ✅ Convert DTO ingredients to entity (ensure `cookingMethod` is stored)
             List<RecipeIngredient> ingredientEntities = recipeDto.getIngredients().stream()
                     .map(ingredientDto -> new RecipeIngredient(
-                            null, 
-                            recipe, 
-                            ingredientDto.getName(), 
-                            ingredientDto.getCookingTime(), 
+                            null,
+                            recipe,
+                            ingredientDto.getName(),
+                            ingredientDto.getCookingTime(),
                             ingredientDto.getCookingMethod()
                     ))
                     .toList();
             recipe.setIngredients(ingredientEntities);
 
-            // ✅ Recalculate cooking time
             recipe.setCookingTime(recipeService.calculateRecipeCookTime(recipe.getId()));
-
-            // ✅ Save updated recipe
             Recipe updatedRecipe = recipeService.updateRecipe(id, recipe, user);
             return ResponseEntity.ok(buildRecipeModel(updatedRecipe));
         }
 
         return ResponseEntity.notFound().build();
+    }
+
+    /**
+     * ✅ Delete a recipe.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteRecipe(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        recipeService.deleteRecipe(id, user);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -148,7 +173,7 @@ public class RecipeController {
         recipeModel.add(
                 linkTo(methodOn(RecipeController.class).updateRecipe(recipe.getId(), new RecipeDto(), null))
                         .withRel("update").withType("PUT"),
-                linkTo(methodOn(RecipeController.class).deleteRecipe(recipe.getId(), null)) // ✅ Fixed
+                linkTo(methodOn(RecipeController.class).deleteRecipe(recipe.getId(), null))
                         .withRel("delete").withType("DELETE")
         );
 
@@ -159,5 +184,4 @@ public class RecipeController {
 
         return recipeModel;
     }
-
 }

@@ -9,8 +9,8 @@ INSERT INTO user_roles (user_id, role) VALUES
 (2, 'USER');
 
 -- Insert a recipe (Curry Recipe)
-INSERT INTO recipes (id, name, description, cooking_time, user_id, cooking_method, visibility, start_time, finish_time) VALUES 
-(1, 'Classic Chicken Curry', 'A delicious homemade chicken curry.', 45, 2, 'BOIL', 'PUBLIC', NOW(), NOW() + INTERVAL 45 MINUTE);
+INSERT INTO recipes (id, name, description, cooking_time, user_id, cooking_method, visibility, start_time, finish_time, is_temporary) 
+VALUES (1, 'Classic Chicken Curry', 'A delicious homemade chicken curry.', 45, 2, 'BOIL', 'PUBLIC', NOW(), NOW() + INTERVAL 45 MINUTE, FALSE);
 
 INSERT INTO recipe_ingredients (recipe_id, name, cooking_time, cooking_method) VALUES 
 (1, 'Chicken', 45, 'Boil'),

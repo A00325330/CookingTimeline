@@ -17,7 +17,7 @@ public class RecipeIngredient {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "recipe_id")
+    @JoinColumn(name = "recipe_id", nullable = true) // ✅ Allow null for temporary ingredients
     @JsonIgnore  // ✅ Prevents infinite recursion
     private Recipe recipe;
 
