@@ -1,105 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Multi-Step Modal Example</title>
-<!-- Bootstrap CSS -->
-<link rel="stylesheet"
-	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
-<!-- Custom Styles -->
-<link rel="stylesheet" href="css/styles.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Recipe App</title>
+    
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
 </head>
 <body>
-	<div class="container mt-4">
-		<h1 class="text-center">Recipe App</h1>
 
-		<!-- Existing Auth Buttons (Optional) -->
-		<div id="auth-buttons" class="text-center mb-3">
-			<button id="login-btn" class="btn btn-primary">Login</button>
-			<button id="register-btn" class="btn btn-secondary">Register</button>
-			<button id="logout-btn" class="btn btn-danger" style="display: none;">Logout</button>
-			<button id="admin-btn" class="btn btn-warning" style="display: none;">Admin
-				Page</button>
-		</div>
+    <div class="container mt-4">
+        <h1 class="text-center">Recipe App</h1>
 
-		<!-- Button to open multi-step modal -->
-		<div class="text-center">
-			<button id="openNewRecipeModal" class="btn btn-info">Create
-				New Recipe</button>
-		</div>
+        <!-- Authentication Buttons -->
+        <div id="auth-buttons" class="text-center mb-3">
+            <button id="login-btn" class="btn btn-primary">Login</button>
+            <button id="register-btn" class="btn btn-secondary">Register</button>
+            <button id="logout-btn" class="btn btn-danger" style="display: none;">Logout</button>
+        </div>
 
-		<!-- Existing UI -->
-		<div class="text-center mt-3">
-			<!-- Timer Display -->
-			<h3 id="timer-display">Total Cooking Time: 0 mins</h3>
+        <!-- Dashboard (Hidden Initially) -->
+        <div id="dashboard-section" style="display: none;">
+            <h2>Welcome to Your Dashboard</h2>
+            <button id="view-recipes-btn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#viewRecipesModal">View Recipes</button>
+            <button id="add-recipe-btn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#recipeModal">Add Recipe</button>
+        </div>
+    </div>
 
-			<!-- Recipe Selection Dropdown -->
-			<select id="recipe-select" class="form-select">
-				<option value="">-- Select a Recipe --</option>
-			</select>
+    <!-- 📌 Add Recipe Modal -->
+    <div class="modal fade" id="recipeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Recipe</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="recipe-name" class="form-control mb-2" placeholder="Recipe Name" />
+                    <textarea id="recipe-description" class="form-control mb-2" placeholder="Description"></textarea>
 
-			<h3 id="time-left-display" class="text-center">Time Left: 0:00</h3>
+                    <!-- Ingredients Section -->
+                    <h5>Ingredients</h5>
+                    <div id="ingredient-list" class="mb-3"></div>
 
-			<!-- Start Cooking Button -->
-			<button id="start-timer-btn" class="btn btn-success" disabled>
-				Start Cooking</button>
-		</div>
+                    <div class="input-group mb-2">
+                        <input type="text" id="ingredient-name" class="form-control" placeholder="Ingredient Name" />
+                        <input type="number" id="ingredient-time" class="form-control" placeholder="Cooking Time (mins)" />
+                        <input type="text" id="ingredient-method" class="form-control" placeholder="Method (e.g. Boil, Fry)" />
+                        <button id="add-ingredient-btn" class="btn btn-outline-primary">+</button>
+                    </div>
 
-		<!-- D3 Chart Container -->
-		<div id="chart-container" class="mt-4">
-			<h3>Recipe Cooking Timeline</h3>
-			<div id="ganttChart"></div>
-		</div>
-	</div>
+                    <button id="submit-recipe-btn" class="btn btn-primary">Save Recipe</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-	<!-- 1️⃣ Multi-Step Modal (hidden by default) -->
-	<div id="recipe-modal" class="modal">
-		<div class="modal-content">
-			<!-- STEP 1: Enter Recipe Name -->
-			<div id="recipe-step-1">
-				<h3>Enter Your Recipe Name</h3>
-				<input type="text" id="recipeNameInput" class="form-control mb-2"
-					placeholder="e.g. Spaghetti Bolognese" />
-				<button id="recipeNameNextBtn" class="btn btn-primary">
-					Next →</button>
-			</div>
+    <!-- 📌 View Recipes Modal -->
+    <div class="modal fade" id="viewRecipesModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Your Recipes</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul id="recipe-list" class="list-group"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
 
-			<!-- STEP 2: Add Ingredients (initially hidden) -->
-			<div id="recipe-step-2" style="display: none;">
-				<h4>Add Ingredients</h4>
-				<input type="text" id="ingredientName" class="form-control mb-2"
-					placeholder="Ingredient Name" /> <input type="number"
-					id="ingredientTime" class="form-control mb-2"
-					placeholder="Cooking Time (mins)" /> <input type="text"
-					id="ingredientMethod" class="form-control mb-2"
-					placeholder="Cooking Method" />
-				<button id="addIngredientBtn" class="btn btn-info mb-3">
-					Add Ingredient</button>
-
-				<div id="ingredientList" class="mt-2"></div>
-
-				<button id="finishRecipeBtn" class="btn btn-success mt-3">
-					Finish</button>
-			</div>
-
-			<button id="closeRecipeModal" class="btn btn-danger mt-2">
-				Close</button>
-		</div>
-	</div>
-
-	<!-- Existing Scripts -->
-	<script src="js/script.js"></script>
-	<script src="js/auth.js"></script>
-
-	<script type="module" src="js/api.js"></script>
-	<script type="module" src="js/dropdown.js"></script>
-	<script type="module" src="js/recipes.js"></script>
-	<script type="module" src="js/recipeGraph.js"></script>
-	<script type="module" src="js/newRecipeFlow.js"></script>
-
-
-	<!-- External Libraries -->
-	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <!-- JavaScript Files -->
+    <script src="js/auth.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
