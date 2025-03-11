@@ -84,8 +84,9 @@ public class RecipeService implements IRecipeService {
 
     @Override
     public Optional<Recipe> getRecipeById(Long id) {
-        return recipeRepository.findByIdAndVisibility(id, Visibility.PUBLIC);
+        return recipeRepository.findById(id); // ✅ No visibility filter
     }
+
 
     // ✅ Create or retrieve a temporary recipe for non-logged-in users
     @Override

@@ -32,20 +32,20 @@ public class JwtService implements IJwtService {
      */
     @Override
     public String generateToken(UserDetails userDetails, String role) {
-        Map<String, Object> claims = new HashMap<>();
-
-        // ✅ Ensure role is correctly formatted for Spring Security
         String formattedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase();
-        claims.put("role", formattedRole);
-        
+
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", formattedRole); // ✅ Store Role in JWT
+
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)) 
+                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
     /**
      * ✅ Validates if the token is valid and not expired.
@@ -85,9 +85,9 @@ public class JwtService implements IJwtService {
      */
     @Override
     public String extractRole(String token) {
-        String role = extractClaim(token, claims -> claims.get("role", String.class));
-        return (role != null) ? role : "ROLE_USER"; // ✅ Default role if missing
+        return extractClaim(token, claims -> claims.get("role", String.class));
     }
+
 
     /**
      * Extracts a specific claim using a resolver function.

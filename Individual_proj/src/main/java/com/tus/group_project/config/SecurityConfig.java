@@ -33,30 +33,23 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable()) 
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // ✅ Allow only index, login, and register publicly
+                .requestMatchers("/", "/index.html", "/api/auth/login","/api/auth/register").permitAll()
+                .requestMatchers("/css/**", "/js/**").permitAll()
 
-                // ✅ Public auth endpoints, static files
-                .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                .requestMatchers("/", "/index.html", "/login.html", "/admin.html", "/recipes.html",
-                                 "/css/**", "/js/**").permitAll()
+                // 🔐 **Require login for public and user recipes**
+                .requestMatchers(HttpMethod.GET, "/api/recipes/public", "/api/recipes/public/**").permitAll() // ✅ Fix
+                .requestMatchers(HttpMethod.GET, "/api/recipes/mine").authenticated()
 
-                // ✅ Allow public recipes (GET)
-                .requestMatchers(HttpMethod.GET, "/api/recipes/public", "/api/recipes/public/**").permitAll()
-
-                // ✅ Allow anyone to create & modify temporary recipes
-                .requestMatchers(HttpMethod.POST, "/api/recipes/temp", "/api/recipes/temp/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/recipes/temp/**").permitAll()
-                .requestMatchers(HttpMethod.DELETE, "/api/recipes/temp/{id}/**").permitAll()  // ✅ Allow DELETE temp recipes
-
-
-                // 🔐 All other recipe endpoints require auth
-                .requestMatchers(HttpMethod.GET, "/api/recipes/**").authenticated()
+                // 🔐 **All other recipe endpoints require authentication**
+                .requestMatchers(HttpMethod.POST, "/api/recipes").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/recipes/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/recipes/**").authenticated()
 
-                // 🔐 Only admin can view user endpoints
+                // 🔐 **Only admins can access user management**
                 .requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")
 
-                // 🔐 Protect everything else
+                // 🔐 **Protect everything else**
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

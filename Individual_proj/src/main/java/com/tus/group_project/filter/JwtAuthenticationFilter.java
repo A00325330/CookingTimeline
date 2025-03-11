@@ -7,8 +7,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.tus.group_project.service.IJwtService;
@@ -23,6 +21,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -39,14 +39,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String requestURI = request.getRequestURI();
-
-        // ✅ Allow Guest Mode (No JWT required for /api/guest/**)
-        if (requestURI.startsWith("/api/guest/")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -56,12 +48,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String jwtToken = authHeader.substring(7);
         String email = null;
-        String role = "USER"; // Default role if missing
+        String role = "ROLE_USER"; // Default role if missing
 
         try {
             Claims claims = jwtService.extractAllClaims(jwtToken);
             email = claims.getSubject();
-            role = claims.get("role", String.class); // Extract role from JWT
+            role = claims.get("role", String.class);
+
+            System.out.println("🔍 Extracted Email: " + email);
+            System.out.println("🔍 Extracted Role: " + role);
         } catch (ExpiredJwtException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token expired");
@@ -72,19 +67,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
             if (jwtService.isTokenValid(jwtToken, userDetails)) {
-                role = jwtService.extractRole(jwtToken);
-                String formattedRole = role.replace("ROLE_", ""); // ✅ Ensure it matches @PreAuthorize("hasRole('ADMIN')")
-                
+                role = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase(); // ✅ Ensure correct role format
+
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + formattedRole))
+                        userDetails, null, Collections.singletonList(new SimpleGrantedAuthority(role))
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-        
+        }
+
+
         filterChain.doFilter(request, response);
     }
-    }}
+}
