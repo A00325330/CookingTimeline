@@ -1,78 +1,107 @@
+// recipeForm.js
 import { saveRecipe } from "./api.js";
-import { loadDashboard } from "./dashboard.js"; // ✅ Ensure dashboard reloads after saving
+import { loadDashboard } from "./dashboard.js";
+import { isAdmin } from "./adminCheck.js";  // <== We'll check roles here
 
 let ingredients = [];
 
 export function showAddRecipeModal() {
-    const mainContent = document.getElementById("main-content");
-    mainContent.innerHTML = `
-        <div class="card p-4">
-            <h2>Add New Recipe</h2>
-            <input type="text" id="recipe-name" class="form-control mb-2" placeholder="Recipe Name" required />
-            <textarea id="recipe-description" class="form-control mb-2" placeholder="Description" required></textarea>
+  const mainContent = document.getElementById("main-content");
+  mainContent.innerHTML = `
+    <div class="card p-4">
+      <h2>Add New Recipe</h2>
+      <p>(It will be ${
+        isAdmin() ? "PUBLIC" : "PRIVATE"
+      } by default.)</p>
 
-            <!-- Ingredients Section -->
-            <h5>Ingredients</h5>
-            <div id="ingredient-list" class="mb-3"></div>
+      <input type="text" id="recipe-name" class="form-control mb-2" placeholder="Recipe Name" required />
+      <textarea id="recipe-description" class="form-control mb-2" placeholder="Description" required></textarea>
 
-            <div class="input-group mb-2">
-                <input type="text" id="ingredient-name" class="form-control" placeholder="Ingredient Name" />
-                <input type="number" id="ingredient-time" class="form-control" placeholder="Cooking Time (mins)" />
-                <input type="text" id="ingredient-method" class="form-control" placeholder="Method (e.g. Boil, Fry)" />
-                <button id="add-ingredient-btn" class="btn btn-outline-primary">➕</button>
-            </div>
+      <!-- Ingredients Section -->
+      <h5>Ingredients</h5>
+      <div id="ingredient-list" class="mb-3"></div>
 
-            <button id="submit-recipe-btn" class="btn btn-success">✅ Save Recipe</button>
-        </div>
-    `;
+      <div class="input-group mb-2">
+        <input type="text" id="ingredient-name" class="form-control" placeholder="Ingredient Name" />
+        <input type="number" id="ingredient-time" class="form-control" placeholder="Cooking Time (mins)" />
+        <input type="text" id="ingredient-method" class="form-control" placeholder="Method (e.g. Boil, Fry)" />
+        <button id="add-ingredient-btn" class="btn btn-outline-primary">➕</button>
+      </div>
 
-    document.getElementById("add-ingredient-btn").addEventListener("click", addIngredient);
-    document.getElementById("submit-recipe-btn").addEventListener("click", submitRecipe);
+      <button id="submit-recipe-btn" class="btn btn-success">✅ Save Recipe</button>
+    </div>
+  `;
+
+  // Reset any leftover
+  ingredients = [];
+
+  document
+    .getElementById("add-ingredient-btn")
+    .addEventListener("click", addIngredient);
+
+  document
+    .getElementById("submit-recipe-btn")
+    .addEventListener("click", submitRecipe);
 }
 
 function addIngredient() {
-    const name = document.getElementById("ingredient-name").value.trim();
-    const time = document.getElementById("ingredient-time").value.trim();
-    const method = document.getElementById("ingredient-method").value.trim();
+  const name = document.getElementById("ingredient-name").value.trim();
+  const time = +document.getElementById("ingredient-time").value.trim();
+  const method = document.getElementById("ingredient-method").value.trim();
 
-    if (!name || !time || !method) {
-        alert("⚠️ Please fill all ingredient fields.");
-        return;
-    }
+  if (!name || !time || !method) {
+    alert("⚠️ Please fill all ingredient fields.");
+    return;
+  }
 
-    const ingredientItem = document.createElement("div");
-    ingredientItem.classList.add("alert", "alert-secondary", "d-flex", "justify-content-between", "align-items-center");
-    ingredientItem.innerHTML = `
-        <span>${name} - ${time} mins (${method})</span>
-        <button class="btn btn-sm btn-danger remove-ingredient">❌</button>
+  ingredients.push({ name, cookingTime: time, cookingMethod: method });
+  renderIngredientList();
+}
+
+function renderIngredientList() {
+  const container = document.getElementById("ingredient-list");
+  container.innerHTML = "";
+
+  ingredients.forEach((ing, index) => {
+    const item = document.createElement("div");
+    item.className = "alert alert-secondary d-flex justify-content-between align-items-center mb-1";
+    item.innerHTML = `
+      <span>${ing.name} - ${ing.cookingTime} mins (${ing.cookingMethod})</span>
+      <button class="btn btn-sm btn-danger">❌</button>
     `;
 
-    ingredients.push({ name, cookingTime: parseInt(time), cookingMethod: method });
-    document.getElementById("ingredient-list").appendChild(ingredientItem);
-
-    ingredientItem.querySelector(".remove-ingredient").addEventListener("click", () => {
-        ingredients.splice(ingredients.findIndex(i => i.name === name), 1);
-        ingredientItem.remove();
+    item.querySelector("button").addEventListener("click", () => {
+      ingredients.splice(index, 1);
+      renderIngredientList();
     });
 
-    document.getElementById("ingredient-name").value = "";
-    document.getElementById("ingredient-time").value = "";
-    document.getElementById("ingredient-method").value = "";
+    container.appendChild(item);
+  });
 }
 
 async function submitRecipe() {
-    const name = document.getElementById("recipe-name").value.trim();
-    const description = document.getElementById("recipe-description").value.trim();
+  const name = document.getElementById("recipe-name").value.trim();
+  const description = document.getElementById("recipe-description").value.trim();
 
-    if (!name || !description) {
-        alert("⚠️ Please enter a recipe name and description.");
-        return;
-    }
+  if (!name || !description) {
+    alert("⚠️ Please enter a recipe name and description.");
+    return;
+  }
 
-    await saveRecipe({ name, description, ingredients });
+  // 🔑 Key difference: set visibility based on isAdmin()
+  const visibility = isAdmin() ? "PUBLIC" : "PRIVATE";
 
-    alert("✅ Recipe added successfully!");
+  const recipeData = {
+    name,
+    description,
+    ingredients,
+    visibility
+  };
 
-    // ✅ Redirect user back to the dashboard
-    loadDashboard();
+  // Save
+  await saveRecipe(recipeData);
+  alert(`✅ Recipe added successfully as ${visibility}!`);
+
+  // Return to dashboard
+  loadDashboard();
 }
