@@ -131,22 +131,34 @@ function handleLogout() {
 
 // (Optional) Display the chosen recipe details in #selected-recipe
 function displayChosenRecipe(recipe) {
-    const container = document.getElementById("selected-recipe");
-    if (!recipe) {
-        container.innerHTML = "";
-        return;
-    }
+  const container = document.getElementById("selected-recipe");
+  if (!recipe) {
+    container.innerHTML = "";
+    return;
+  }
 
-    container.innerHTML = `
-        <div class="card p-3">
-            <h4>${recipe.name}</h4>
-            <p>${recipe.description || ""}</p>
-            <h5>Ingredients:</h5>
-            <ul>
-                ${recipe.ingredients.map(ing => `
-                    <li>${ing.name} - ${ing.cookingTime} mins (${ing.cookingMethod})</li>
-                `).join("")}
-            </ul>
-        </div>
-    `;
+  // 🔑 Sort ingredients descending by cookingTime
+  const sortedIngredients = [...recipe.ingredients].sort(
+    (a, b) => b.cookingTime - a.cookingTime
+  );
+
+  container.innerHTML = `
+    <div class="card p-3">
+      <h4>${recipe.name}</h4>
+      <p>${recipe.description || ""}</p>
+      <h5>Ingredients (Longest to Shortest):</h5>
+      <ul>
+        ${sortedIngredients
+          .map(
+            (ing) => `
+            <li>
+              ${ing.name} - ${ing.cookingTime} mins (${ing.cookingMethod})
+            </li>
+          `
+          )
+          .join("")}
+      </ul>
+    </div>
+  `;
 }
+
