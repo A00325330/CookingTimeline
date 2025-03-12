@@ -1,137 +1,94 @@
+/* ======== 🌿 General Styles ======== */
 body {
+    font-family: 'Poppins', sans-serif;
     background-color: #f8f9fa;
-}
-.graph-box {
-    width: 80%;
-    height: 300px;
-    margin: 20px auto;
-    background: #e9ecef;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6c757d;
-    font-size: 18px;
-    font-weight: bold;
-}
-.modal {
-    display: none;
-    position: fixed;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-.modal-content {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.recipe-scroll-container {
-    white-space: nowrap;
-    overflow-x: auto;
-    padding: 10px;
+    color: #333;
 }
 
-.card {
-    display: inline-block;
-    width: 220px;
-}
-.recipe-scroll {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-}
-
-.scroll-container {
-    display: flex;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    white-space: nowrap;
-    width: 80%;
-    padding: 10px;
-    scrollbar-width: none; /* Hide scrollbar in Firefox */
-    -ms-overflow-style: none; /* Hide scrollbar in IE/Edge */
-}
-
-.scroll-container::-webkit-scrollbar {
-    display: none; /* Hide scrollbar in Chrome/Safari */
-}
-
-.recipe-card {
-    flex: 0 0 auto;
-    width: 250px;
-    margin: 10px;
-}
-
-.scroll-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    cursor: pointer;
-    font-size: 20px;
-    padding: 10px;
-    border-radius: 50%;
-}
-
-.scroll-btn:hover {
-    background-color: #0056b3;
-}
-/* Basic styling for the .modal and .modal-content */
-.modal {
-  display: none; /* hidden by default */
-  position: fixed;
-  z-index: 9999;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 400px;
-  max-width: 90%;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.modal-content {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-#recipe-step-1,
-#recipe-step-2 {
-  /* optional spacing or styling */
-}
-
-#ingredientList ul {
-  list-style: square;
-  padding-left: 20px;
-}
-/* Center dashboard content */
-.card {
-    max-width: 500px;
-    margin: auto;
-}
-
-/* Fix navbar spacing */
+/* ======== 🌿 Navigation ======== */
 nav {
-    padding: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Improve button appearance */
+/* ======== 📌 Buttons ======== */
 .btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-weight: bold;
-    min-width: 140px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
 }
 
+.btn-success {
+    background-color: #a3d9a5;
+    border: none;
+    color: #333;
+}
+
+.btn-success:hover {
+    background-color: #89c289;
+}
+
+.btn-danger {
+    background-color: #ff7b7b;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #e96666;
+}
+
+.btn-info {
+    background-color: #6ec5ff;
+    border: none;
+}
+
+.btn-info:hover {
+    background-color: #56aede;
+}
+
+/* ======== 📌 Cards ======== */
+.card {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+/* ======== 📌 Recipe Dropdown & Display ======== */
+#recipe-dropdown {
+    background-color: #fff;
+    border: 2px solid #a3d9a5;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+#selected-recipe {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* ======== 📌 Chart Container ======== */
+#recipe-chart-container {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+.modal {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: rgba(0, 0, 0, 0.3);
+}
+.btn-success {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    display: inline-block !important;
+    visibility: visible !important;
+}
