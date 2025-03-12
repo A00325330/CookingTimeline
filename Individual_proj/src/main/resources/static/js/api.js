@@ -3,12 +3,42 @@
 import { navigateTo } from "./spa.js";
 // api.js - Handles API Calls
 
+export async function saveRecipe(recipe) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("❌ Not authenticated. Please log in.");
+        return;
+    }
+
+    try {
+        console.log("📤 Sending Recipe Data:", recipe);
+
+        const response = await fetch("http://localhost:8081/api/recipes", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(recipe),
+        });
+
+        if (!response.ok) {
+            throw new Error(`❌ Failed to save recipe. Status: ${response.status}`);
+        }
+
+        alert("✅ Recipe saved successfully!");
+        fetchRecipes(); // Refresh recipes
+    } catch (error) {
+        console.error("🚨 ERROR: Saving recipe failed", error);
+        alert("❌ Could not save recipe.");
+    }
+}
 
 export async function fetchRecipes() {
     const token = localStorage.getItem("token");
     if (!token) {
         alert("❌ Not authenticated. Please log in.");
-        return;
+        return [];
     }
 
     try {
@@ -27,26 +57,26 @@ export async function fetchRecipes() {
         const data = await response.json();
         console.log("📥 Recipes fetched:", data);
 
-        const recipesContainer = document.getElementById("recipes-container");
-        if (!recipesContainer) {
-            console.error("❌ ERROR: #recipes-container not found.");
-            return;
+        // Ensure `recipeList` exists in `_embedded`
+        if (data._embedded && data._embedded.recipeList) {
+            return data._embedded.recipeList;
         }
 
-        recipesContainer.innerHTML = data.length > 0
-            ? data.map(recipe => `
-                <div class="card mb-2 p-3">
-                    <h4>${recipe.name}</h4>
-                    <p>${recipe.description}</p>
-                </div>
-            `).join("")
-            : `<p>No recipes found.</p>`;
+        // If API returns a direct array, return it
+        if (Array.isArray(data)) {
+            return data;
+        }
+
+        console.error("🚨 Unexpected response format:", data);
+        return []; // Return empty array to prevent crashes
 
     } catch (error) {
         console.error("🚨 ERROR: Fetching recipes failed", error);
         alert("❌ Could not fetch recipes.");
+        return [];
     }
 }
+
 
 export async function loginUser() {
     const email = document.getElementById("login-email").value.trim();
