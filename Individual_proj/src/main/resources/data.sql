@@ -1,7 +1,7 @@
 -- Insert users
 INSERT INTO users (id, email, password) VALUES 
-(1, 'admin@example.com', '$2a$10$HZRxlurLYB4WOziqN57xY.KBu3l0sNpRTn/tR27H6RBKLW0zSAF6W'),
-(2, 'user@example.com', '$2a$10$HZRxlurLYB4WOziqN57xY.KBu3l0sNpRTn/tR27H6RBKLW0zSAF6W');
+(1, 'admin@example.com','$2a$10$4oTjrMo.u2vcMr9zwQJi8O5Bci2HCz4Em6LnJZ2uN5G/G0wEOabFW'),
+(2, 'user@example.com', '$2a$10$4oTjrMo.u2vcMr9zwQJi8O5Bci2HCz4Em6LnJZ2uN5G/G0wEOabFW');
 
 -- Assign roles to users
 INSERT INTO user_roles (user_id, role) VALUES 

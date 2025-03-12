@@ -1,8 +1,7 @@
-// api.js - Handles authentication API calls
-
+// api.js
 import { navigateTo } from "./spa.js";
-// api.js - Handles API Calls
 
+// 1️⃣ Save a new private recipe
 export async function saveRecipe(recipe) {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -27,13 +26,44 @@ export async function saveRecipe(recipe) {
         }
 
         alert("✅ Recipe saved successfully!");
-        fetchRecipes(); // Refresh recipes
+        // Optionally refetch or do something else
     } catch (error) {
         console.error("🚨 ERROR: Saving recipe failed", error);
         alert("❌ Could not save recipe.");
     }
 }
 
+// 2️⃣ Update an existing recipe (if you have a PUT endpoint)
+export async function updateRecipe(recipeId, updatedRecipe) {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("❌ Not authenticated. Please log in.");
+        return false;
+    }
+
+    try {
+        const response = await fetch(`http://localhost:8081/api/recipes/${recipeId}`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(updatedRecipe),
+        });
+
+        if (!response.ok) {
+            throw new Error(`❌ Failed to update recipe. Status: ${response.status}`);
+        }
+
+        console.log("✅ Recipe updated successfully!");
+        return true;
+    } catch (error) {
+        console.error("🚨 ERROR: Updating recipe failed", error);
+        return false;
+    }
+}
+
+// 3️⃣ Fetch user's *private* recipes
 export async function fetchRecipes() {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -55,32 +85,67 @@ export async function fetchRecipes() {
         }
 
         const data = await response.json();
-        console.log("📥 Recipes fetched:", data);
+        console.log("📥 Private recipes fetched:", data);
 
-        // Ensure `recipeList` exists in `_embedded`
+        // If response has _embedded.recipeList
         if (data._embedded && data._embedded.recipeList) {
             return data._embedded.recipeList;
         }
-
-        // If API returns a direct array, return it
+        // If it’s a direct array
         if (Array.isArray(data)) {
             return data;
         }
 
         console.error("🚨 Unexpected response format:", data);
-        return []; // Return empty array to prevent crashes
+        return [];
 
     } catch (error) {
         console.error("🚨 ERROR: Fetching recipes failed", error);
-        alert("❌ Could not fetch recipes.");
+        alert("❌ Could not fetch private recipes.");
         return [];
     }
 }
 
+// 4️⃣ Fetch *public* recipes
+export async function fetchPublicRecipes() {
+    try {
+        const response = await fetch("http://localhost:8081/api/recipes/public", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
 
+        if (!response.ok) {
+            throw new Error(`❌ Error fetching public recipes. Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("📥 Public recipes fetched:", data);
+
+        // If response has _embedded.recipeList
+        if (data._embedded && data._embedded.recipeList) {
+            return data._embedded.recipeList;
+        }
+        // If it’s a direct array
+        if (Array.isArray(data)) {
+            return data;
+        }
+
+        console.error("🚨 Unexpected public response format:", data);
+        return [];
+
+    } catch (error) {
+        console.error("🚨 ERROR: Fetching public recipes failed", error);
+        alert("❌ Could not fetch public recipes.");
+        return [];
+    }
+}
+
+// 5️⃣ Login user
 export async function loginUser() {
-    const email = document.getElementById("login-email").value.trim();
-    const password = document.getElementById("login-password").value.trim();
+    const email = document.getElementById("login-email")?.value.trim();
+    const password = document.getElementById("login-password")?.value.trim();
 
     if (!email || !password) {
         alert("❌ Please enter both email and password.");
@@ -108,10 +173,10 @@ export async function loginUser() {
     }
 }
 
-
+// 6️⃣ Register user
 export async function registerUser() {
-    const email = document.getElementById("register-email").value.trim();
-    const password = document.getElementById("register-password").value.trim();
+    const email = document.getElementById("register-email")?.value.trim();
+    const password = document.getElementById("register-password")?.value.trim();
 
     if (!email || !password) {
         alert("❌ Please enter both email and password.");
@@ -125,7 +190,7 @@ export async function registerUser() {
             body: JSON.stringify({
                 email: email,
                 password: password,
-                role: "USER", // 🔥 Ensure users are registered as "USER"
+                role: "USER", // 🔥 Ensure normal users get role USER
             }),
         });
 

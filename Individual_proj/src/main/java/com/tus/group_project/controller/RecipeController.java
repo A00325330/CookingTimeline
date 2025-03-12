@@ -34,7 +34,7 @@ public class RecipeController {
     @PostMapping
     public ResponseEntity<EntityModel<Recipe>> createRecipe(@RequestBody RecipeDto recipeDto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
+        
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -51,7 +51,7 @@ public class RecipeController {
         newRecipe.setName(recipeDto.getName());
         newRecipe.setDescription(recipeDto.getDescription());
         newRecipe.setSteps(recipeDto.getSteps());
-        newRecipe.setVisibility(recipeDto.getVisibility());
+        newRecipe.setVisibility(recipeDto.getVisibility()); // ✅ Set visibility
         newRecipe.setUser(user);
 
         List<RecipeIngredient> ingredientEntities = recipeDto.getIngredients().stream()
@@ -75,6 +75,7 @@ public class RecipeController {
         Recipe savedRecipe = recipeService.createRecipe(newRecipe, user);
         return ResponseEntity.ok(buildRecipeModel(savedRecipe));
     }
+
 
     @GetMapping("/mine")
     public ResponseEntity<CollectionModel<EntityModel<Recipe>>> getMyRecipes() {

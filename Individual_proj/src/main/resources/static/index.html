@@ -24,6 +24,38 @@
 
         <!-- Main Content -->
         <div id="main-content"></div>
+        <!-- ✅ Sidebar for Editing Ingredients -->
+<div id="edit-panel" class="edit-panel hidden">
+    <h4>Edit Ingredient</h4>
+    <label>Name:</label>
+    <input type="text" id="edit-name" class="form-control mb-2">
+    <label>Cooking Time (mins):</label>
+    <input type="number" id="edit-time" class="form-control mb-2">
+    <label>Cooking Method:</label>
+    <input type="text" id="edit-method" class="form-control mb-2">
+    <button id="save-edit" class="btn btn-primary">Save</button>
+    <button id="cancel-edit" class="btn btn-secondary">Cancel</button>
+</div>
+
+<!-- ✅ Add Sidebar Styling -->
+<style>
+    .edit-panel {
+        position: fixed;
+        top: 50px;
+        right: -320px;
+        width: 300px;
+        height: auto;
+        background: #fff;
+        box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        transition: right 0.3s ease-in-out;
+        border-radius: 10px 0 0 10px;
+    }
+    .edit-panel.show {
+        right: 10px;
+    }
+</style>
+        
     </div>
 
     <!-- ✅ Bootstrap & Dependencies -->
