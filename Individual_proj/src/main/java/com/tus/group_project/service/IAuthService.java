@@ -6,7 +6,7 @@ import com.tus.group_project.exception.InvalidCredentialsException;
 import com.tus.group_project.exception.UserAlreadyExistsException;
 
 public interface IAuthService {
-
+	String encodePassword(String rawPassword);
     /**
      * Authenticate a user and return their details.
      * @param email The user's email
@@ -22,4 +22,6 @@ public interface IAuthService {
      * @throws UserAlreadyExistsException if the email is already taken
      */
     void registerUser(UserRegistrationDto userRegistrationDto) throws UserAlreadyExistsException;
+
+	
 }

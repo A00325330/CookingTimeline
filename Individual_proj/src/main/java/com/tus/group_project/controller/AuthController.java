@@ -20,6 +20,7 @@ import com.tus.group_project.service.IJwtService;
 
 import jakarta.validation.Valid;
 import java.util.Optional;
+import java.util.EnumSet;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -36,7 +37,7 @@ public class AuthController {
     }
 
     /**
-     * Login a user and return a JWT token with HATEOAS links.
+     * 🔑 Login a user and return a JWT token with HATEOAS links.
      */
     @PostMapping("/login")
     public ResponseEntity<EntityModel<UserLoginResponse>> createJwt(@Valid @RequestBody UserLoginDto userLoginDto) {
@@ -60,13 +61,13 @@ public class AuthController {
                 linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("recipes")
             );
 
-            // ✅ Check if the logged-in user is ADMIN and add the /api/users link
+            // ✅ Add link to /api/users if user is ADMIN
             Optional<User> user = userRepository.findByEmail(userLoginDto.getEmail());
-            if (user.isPresent() && user.get().getRoles().contains(Role.ADMIN)) {
-                entityModel.add(linkTo(methodOn(UserController.class).getAllUsers()).withRel("users"));
-            }
-
-            System.out.println("User Authorities: " + userDetails.getAuthorities());
+            user.ifPresent(value -> {
+                if (value.getRoles().contains(Role.ADMIN)) {
+                    entityModel.add(linkTo(methodOn(UserController.class).getAllUsers()).withRel("users"));
+                }
+            });
 
             return ResponseEntity.ok(entityModel);
 
@@ -76,23 +77,30 @@ public class AuthController {
     }
 
     /**
-     * Register a new user with HATEOAS links.
+     * 🆕 Register a new user (USER role assigned by default) with HATEOAS links.
      */
     @PostMapping("/register")
     public ResponseEntity<EntityModel<UserRegistrationResponse>> registerUser(@Valid @RequestBody UserRegistrationDto userRegistrationDto) {
-        try {
-            authService.registerUser(userRegistrationDto);
-            UserRegistrationResponse response = new UserRegistrationResponse("User registered successfully!");
-
-            EntityModel<UserRegistrationResponse> entityModel = EntityModel.of(response,
-                linkTo(methodOn(AuthController.class).registerUser(userRegistrationDto)).withSelfRel(),
-                linkTo(methodOn(AuthController.class).createJwt(null)).withRel("login")
-            );
-
-            return ResponseEntity.ok(entityModel);
-
-        } catch (Exception e) {
-            return ResponseEntity.status(400).body(EntityModel.of(new UserRegistrationResponse("Registration failed: " + e.getMessage())));
+        String email = userRegistrationDto.getEmail().trim().toLowerCase();
+        
+        if (userRepository.existsByEmail(email)) {
+            return ResponseEntity.status(400).body(EntityModel.of(new UserRegistrationResponse("Email is already taken.")));
         }
+
+        // ✅ Create a new user with the USER role
+        User newUser = new User();
+        newUser.setEmail(email);
+        newUser.setPassword(authService.encodePassword(userRegistrationDto.getPassword()));  // Uses service for password encoding
+        newUser.setRoles(EnumSet.of(Role.USER));  // 🔥 Assigns USER role only
+
+        userRepository.save(newUser);
+
+        UserRegistrationResponse response = new UserRegistrationResponse("User registered successfully!");
+        EntityModel<UserRegistrationResponse> entityModel = EntityModel.of(response,
+            linkTo(methodOn(AuthController.class).registerUser(userRegistrationDto)).withSelfRel(),
+            linkTo(methodOn(AuthController.class).createJwt(null)).withRel("login")
+        );
+
+        return ResponseEntity.ok(entityModel);
     }
 }

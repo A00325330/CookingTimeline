@@ -28,6 +28,10 @@ public class AuthService implements IAuthService {
         this.userDetailsService = userDetailsService;
         this.userRepository = userRepository;
     }
+    @Override
+    public String encodePassword(String rawPassword) {
+        return passwordEncoder.encode(rawPassword);
+    }
 
     @Override
     public UserDetails authenticate(String email, String password) throws InvalidCredentialsException {

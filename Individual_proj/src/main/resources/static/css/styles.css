@@ -112,3 +112,26 @@ body {
   list-style: square;
   padding-left: 20px;
 }
+/* Center dashboard content */
+.card {
+    max-width: 500px;
+    margin: auto;
+}
+
+/* Fix navbar spacing */
+nav {
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Improve button appearance */
+.btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    min-width: 140px;
+}
+

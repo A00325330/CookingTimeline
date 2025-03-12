@@ -1,44 +1,26 @@
-document.addEventListener("DOMContentLoaded", function () {
-    // Buttons
-    const viewRecipesBtn = document.getElementById("view-recipes-btn");
-    const recipeList = document.getElementById("recipe-list");
+// dashboard.js - Handles Dashboard Page UI
 
-    // ✅ View Recipes Function
-    viewRecipesBtn.addEventListener("click", function () {
-        fetch("http://localhost:8081/api/recipes/mine", {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${localStorage.getItem("token")}`
-            }
-        })
-        .then(response => {
-            if (!response.ok) throw new Error("Failed to fetch recipes.");
-            return response.json();
-        })
-        .then(data => {
-            recipeList.innerHTML = ""; // Clear existing list
+import { fetchRecipes } from "./api.js";
 
-            if (data._embedded && data._embedded.recipeList.length > 0) {
-                data._embedded.recipeList.forEach(recipe => {
-                    const listItem = document.createElement("li");
-                    listItem.classList.add("list-group-item");
-                    listItem.innerHTML = `
-                        <strong>${recipe.name}</strong> - ${recipe.description}
-                        <br><small>Cooking Time: ${recipe.cookingTime} mins</small>
-                    `;
+export function loadDashboard() {
+    const mainContent = document.getElementById("main-content");
+    mainContent.innerHTML = `
+        <div class="card p-4">
+            <h2>Welcome to Your Dashboard</h2>
+            <p>Manage your recipes below:</p>
+            <div class="d-flex gap-3">
+                <button id="view-recipes-btn" class="btn btn-info">📜 View Recipes</button>
+                <button id="add-recipe-btn" class="btn btn-success">➕ Add Recipe</button>
+                <button id="logout-btn" class="btn btn-danger">🚪 Logout</button>
+            </div>
+            <div id="recipes-container" class="mt-3"></div>
+        </div>
+    `;
 
-                    recipeList.appendChild(listItem);
-                });
-            } else {
-                recipeList.innerHTML = "<li class='list-group-item text-muted'>No recipes found.</li>";
-            }
-
-            // Show the modal
-            new bootstrap.Modal(document.getElementById("viewRecipesModal")).show();
-        })
-        .catch(error => {
-            console.error("Error:", error);
-            alert("Error fetching recipes.");
-        });
+    document.getElementById("view-recipes-btn").addEventListener("click", fetchRecipes);
+    document.getElementById("add-recipe-btn").addEventListener("click", () => alert("Add Recipe Modal Here"));
+    document.getElementById("logout-btn").addEventListener("click", () => {
+        localStorage.removeItem("token");
+        navigateTo("login");
     });
-});
+}
