@@ -32,6 +32,7 @@ import java.util.EnumSet;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
     private final IUserService userService;
@@ -50,7 +51,7 @@ public class UserController {
      * ✅ Get All Users (ADMIN ONLY) with HATEOAS support.
      */
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")  // ✅ Fixed role check
+    @PreAuthorize("hasRole('ADMIN')")
     public CollectionModel<EntityModel<UserDto>> getAllUsers() {
         List<EntityModel<UserDto>> users = StreamSupport.stream(userRepo.findAll().spliterator(), false)
                 .map(user -> {
@@ -58,99 +59,177 @@ public class UserController {
                     UserMapper.toUserDto(user, userDto); // Convert user to DTO
 
                     return EntityModel.of(
-                        userDto,
-                        WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getUserById(user.getId())).withSelfRel()
+                            userDto,
+                            // Self link -> GET user by ID
+                            WebMvcLinkBuilder.linkTo(
+                                    WebMvcLinkBuilder.methodOn(UserController.class)
+                                            .getUserById(user.getId())
+                            ).withSelfRel()
                     );
                 })
                 .toList();
 
-        Link selfLink = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()).withSelfRel();
-        return CollectionModel.of(users, selfLink);
+        // Collection-level self link
+        Link selfLink = WebMvcLinkBuilder.linkTo(
+                WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()
+        ).withSelfRel();
+
+        // Optional: Add a link to "createUser" since it's an admin-only method
+        Link createUserLink = WebMvcLinkBuilder.linkTo(
+                WebMvcLinkBuilder.methodOn(UserController.class).createUser(null)
+        ).withRel("create_user");
+
+        return CollectionModel.of(users, selfLink, createUserLink);
     }
 
     /**
      * ✅ Create a new User (ADMIN ONLY)
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")  // ✅ Fixed role check
-    public ResponseEntity<EntityModel<UserRegistrationResponse>> createUser(@Valid @RequestBody UserRegistrationDto userRegDto) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<EntityModel<UserRegistrationResponse>> createUser(
+            @Valid @RequestBody UserRegistrationDto userRegDto
+    ) {
         String email = userRegDto.getEmail().trim().toLowerCase();
         if (userRepo.existsByEmail(email)) {
             throw new UserAlreadyExistsException("Email is already taken.");
         }
 
+        // Create user with default ROLE_USER
         User user = new User();
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(userRegDto.getPassword()));
         user.setRoles(EnumSet.of(Role.USER));
-
         userRepo.save(user);
 
-        EntityModel<UserRegistrationResponse> response = EntityModel.of(
-                new UserRegistrationResponse("User successfully registered."),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getUser(email)).withRel("user"),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()).withRel("all_users")
+        // Build response entity model
+        EntityModel<UserRegistrationResponse> responseModel = EntityModel.of(
+                new UserRegistrationResponse("User successfully registered.")
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        // Link to newly created user (by email)
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getUser(email)
+                ).withRel("user")
+        );
+
+        // Link back to all users
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()
+                ).withRel("all_users")
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseModel);
     }
 
     /**
      * ✅ Get User by Email (ADMIN ONLY)
      */
     @GetMapping("/{email}")
-    @PreAuthorize("hasRole('ADMIN')")  // ✅ Fixed role check
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<EntityModel<UserDto>> getUser(@Valid @PathVariable String email) {
         email = email.trim().toLowerCase();
         Optional<User> userOptional = userRepo.findByEmail(email);
         if (userOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
+        // Convert to DTO
         UserDto userDto = new UserDto();
         UserMapper.toUserDto(userOptional.get(), userDto);
 
-        EntityModel<UserDto> response = EntityModel.of(
-                userDto,
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getUser(email)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()).withRel("all_users")
+        EntityModel<UserDto> responseModel = EntityModel.of(userDto);
+
+        // Self link: GET user by Email
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getUser(email)
+                ).withSelfRel()
         );
 
-        return ResponseEntity.ok(response);
+        // Link to "all_users"
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()
+                ).withRel("all_users")
+        );
+
+        // Because the endpoint is admin-only, we can also include links to update/delete
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).updateUser(email, null)
+                ).withRel("update_user")
+        );
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).deleteUser(email)
+                ).withRel("delete_user")
+        );
+
+        return ResponseEntity.ok(responseModel);
     }
 
     /**
      * ✅ Get User by ID (ADMIN ONLY)
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")  // ✅ Fixed role check (optional: remove if public)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<EntityModel<User>> getUserById(@PathVariable Long id) {
-        Optional<User> user = userService.getUserById(id);
-        if (user.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        Optional<User> userOpt = userService.getUserById(id);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
-        EntityModel<User> response = EntityModel.of(
-                user.get(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getUserById(id)).withSelfRel(),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()).withRel("all_users")
+        User foundUser = userOpt.get();
+        EntityModel<User> responseModel = EntityModel.of(foundUser);
+
+        // Self link
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getUserById(id)
+                ).withSelfRel()
         );
 
-        return ResponseEntity.ok(response);
+        // Link to all users
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()
+                ).withRel("all_users")
+        );
+
+        // Also link to update/delete (using foundUser's email)
+        String foundEmail = foundUser.getEmail().trim().toLowerCase();
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).updateUser(foundEmail, null)
+                ).withRel("update_user")
+        );
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).deleteUser(foundEmail)
+                ).withRel("delete_user")
+        );
+
+        return ResponseEntity.ok(responseModel);
     }
 
     /**
      * ✅ Update User (ADMIN ONLY)
      */
     @PutMapping("/{email}")
-    @PreAuthorize("hasRole('ADMIN')")  // ✅ Fixed role check
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
-    public ResponseEntity<EntityModel<String>> updateUser(@PathVariable String email, @Valid @RequestBody UserRegistrationDto userRegDto) {
+    public ResponseEntity<EntityModel<String>> updateUser(
+            @PathVariable String email,
+            @Valid @RequestBody UserRegistrationDto userRegDto
+    ) {
         email = email.trim().toLowerCase();
         Optional<User> userOptional = userRepo.findByEmail(email);
         if (userOptional.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
         User user = userOptional.get();
@@ -160,34 +239,48 @@ public class UserController {
         }
         userRepo.save(user);
 
-        EntityModel<String> response = EntityModel.of(
-                USER_UPDATED_MESSAGE,
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getUser(email)).withRel("user"),
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()).withRel("all_users")
+        EntityModel<String> responseModel = EntityModel.of(USER_UPDATED_MESSAGE);
+
+        // Link to updated user
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getUser(user.getEmail())
+                ).withRel("user")
         );
 
-        return ResponseEntity.ok(response);
+        // Link to all users
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()
+                ).withRel("all_users")
+        );
+
+        return ResponseEntity.ok(responseModel);
     }
 
     /**
      * ✅ Delete User (ADMIN ONLY)
      */
     @DeleteMapping("/{email}")
-    @PreAuthorize("hasRole('ADMIN')")  // ✅ Fixed role check
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional
     public ResponseEntity<EntityModel<String>> deleteUser(@Valid @PathVariable String email) {
         email = email.trim().toLowerCase();
         if (!userRepo.existsByEmail(email)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
 
         userRepo.deleteByEmail(email);
 
-        EntityModel<String> response = EntityModel.of(
-                USER_DELETED_MESSAGE,
-                WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()).withRel("all_users")
+        EntityModel<String> responseModel = EntityModel.of(USER_DELETED_MESSAGE);
+
+        // Link back to all users
+        responseModel.add(
+                WebMvcLinkBuilder.linkTo(
+                        WebMvcLinkBuilder.methodOn(UserController.class).getAllUsers()
+                ).withRel("all_users")
         );
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(responseModel);
     }
 }

@@ -100,7 +100,6 @@ async function submitRecipe() {
 
   // Save
   await saveRecipe(recipeData);
-  alert(`✅ Recipe added successfully as ${visibility}!`);
 
   // Return to dashboard
   loadDashboard();

@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/recipes").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/recipes/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/recipes/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/recipes/by-tag/**").authenticated()  // ✅ Public access for tag search
 
                 // 🔐 **Only admins can access user management**
                 .requestMatchers(HttpMethod.GET, "/api/users/**").hasRole("ADMIN")

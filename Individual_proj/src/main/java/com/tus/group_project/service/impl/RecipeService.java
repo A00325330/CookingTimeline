@@ -1,32 +1,60 @@
 package com.tus.group_project.service.impl;
 
 import com.tus.group_project.dao.RecipeRepository;
+import com.tus.group_project.dao.TagRepository;
 import com.tus.group_project.model.Recipe;
 import com.tus.group_project.model.RecipeIngredient;
+import com.tus.group_project.model.Tag;
 import com.tus.group_project.model.User;
 import com.tus.group_project.model.Visibility;
 import com.tus.group_project.service.IRecipeService;
+
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class RecipeService implements IRecipeService {
 
     private final RecipeRepository recipeRepository;
-    private Recipe temporaryRecipe; // ✅ Holds the temporary recipe for non-logged-in users
+    private final TagRepository tagRepository; // ✅ Inject TagRepository
 
-    public RecipeService(RecipeRepository recipeRepository) {
+
+    public RecipeService(RecipeRepository recipeRepository, TagRepository tagRepository) {
         this.recipeRepository = recipeRepository;
+        this.tagRepository = tagRepository;
     }
+
 
     @Override
     public Recipe createRecipe(Recipe recipe, User user) {
         recipe.setUser(user);
+
+        // ✅ Ensure `tags` is not null before iteration
+        if (recipe.getTags() == null) {
+            recipe.setTags(new ArrayList<>()); 
+        }
+
+        List<Tag> updatedTags = new ArrayList<>();
+        for (Tag tag : recipe.getTags()) {
+            Tag existingTag = tagRepository.findByName(tag.getName()).orElse(null);
+            if (existingTag == null) {
+                existingTag = tagRepository.save(tag); // Create new tag if it doesn't exist
+            }
+            updatedTags.add(existingTag);
+        }
+        recipe.setTags(updatedTags);
+
         return recipeRepository.save(recipe);
     }
+
+
 
     @Override
     public List<Recipe> getPublicRecipes() {
@@ -35,8 +63,15 @@ public class RecipeService implements IRecipeService {
 
     @Override
     public List<Recipe> getUserRecipes(User user) {
-        return recipeRepository.findByUser(user);
+        List<Recipe> recipes = recipeRepository.findByUser(user);
+
+        for (Recipe recipe : recipes) {
+            Hibernate.initialize(recipe.getTags()); // ✅ Ensure Hibernate fetches tags before serialization
+        }
+
+        return recipes;
     }
+
 
     @Override
     public Optional<Recipe> getRecipeById(Long id, User user) {
@@ -84,53 +119,35 @@ public class RecipeService implements IRecipeService {
 
     @Override
     public Optional<Recipe> getRecipeById(Long id) {
-        return recipeRepository.findById(id); // ✅ No visibility filter
+        return recipeRepository.findById(id);
     }
 
-
-    // ✅ Create or retrieve a temporary recipe for non-logged-in users
+    // ✅ Implement getRecipesByTag method
     @Override
-    public Recipe createOrGetTemporaryRecipe() {
-        Optional<Recipe> existingTempRecipe = recipeRepository.findFirstByIsTemporaryTrue();
+    public List<Recipe> getRecipesByTag(String tagName, User user) {
+        Optional<Tag> tagOpt = tagRepository.findByName(tagName);
 
-        if (existingTempRecipe.isPresent()) {
-            return existingTempRecipe.get(); // ✅ Return the existing temporary recipe
+        // ✅ Ensure tag exists, otherwise return an empty list
+        if (tagOpt.isEmpty()) {
+            return List.of();
         }
 
-        Recipe tempRecipe = new Recipe();
-        tempRecipe.setName("Temporary Recipe");
-        tempRecipe.setVisibility(Visibility.PRIVATE);
-        tempRecipe.setTemporary(true); // ✅ Ensure the recipe is marked as temporary
-
-        return recipeRepository.save(tempRecipe);
-    }
-    @Override
-    public Optional<Recipe> getTemporaryRecipeById(Long id) {
-        return recipeRepository.findById(id).filter(Recipe::isTemporary);
-    }
-
-
-    // ✅ Add an ingredient to the temporary recipe
-    @Override
-    public Recipe addIngredientToTemporaryRecipe(Long tempRecipeId, RecipeIngredient ingredient) {
-        // ✅ Fetch the temporary recipe from the database
-        Optional<Recipe> tempRecipeOptional = recipeRepository.findById(tempRecipeId);
+        Tag tag = tagOpt.get();
         
-        if (tempRecipeOptional.isEmpty() || !tempRecipeOptional.get().isTemporary()) {
-            return null; // ❌ If no temp recipe exists or it's not marked temporary, return null
-        }
+        // ✅ Convert PersistentSet to a List before processing
+        List<Recipe> recipeList = new ArrayList<>(tag.getRecipes());
 
-        Recipe tempRecipe = tempRecipeOptional.get();
-
-        // ✅ Ensure ingredients list is initialized
-        if (tempRecipe.getIngredients() == null) {
-            tempRecipe.setIngredients(new ArrayList<>());
-        }
-
-        // ✅ Add ingredient and save
-        ingredient.setRecipe(tempRecipe);
-        tempRecipe.getIngredients().add(ingredient);
-        return recipeRepository.save(tempRecipe);
+        return recipeList.stream()
+                .filter(recipe -> recipe.getVisibility() == Visibility.PUBLIC ||
+                        (user != null && recipe.getUser().equals(user)))
+                .toList();
     }
 
+
+
+
+    @Override
+    public List<Tag> getAllTags() {
+        return new ArrayList<>(tagRepository.findAll());
+    } 
 }
