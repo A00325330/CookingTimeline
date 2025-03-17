@@ -10,7 +10,9 @@ import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -118,27 +120,32 @@ public class RecipeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRecipe(@PathVariable Long id) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+    public ResponseEntity<RepresentationModel<?>> deleteRecipe(@PathVariable Long id) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !(auth.getPrincipal() instanceof UserDetails)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        UserDetails userDetails = (UserDetails) auth.getPrincipal();
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        try {
+            recipeService.deleteRecipe(id, user);
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity.status(ex.getStatusCode()).build();
         }
 
-        User user = optionalUser.get();
-        Optional<Recipe> existingRecipeOpt = recipeService.getRecipeById(id);
-        if (existingRecipeOpt.isEmpty() || !existingRecipeOpt.get().getUser().equals(user)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        RepresentationModel<?> model = new RepresentationModel<>();
+        model.add(linkTo(methodOn(RecipeController.class).getMyRecipes()).withRel("mine"));
+        model.add(linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes"));
+        model.add(linkTo(methodOn(RecipeController.class).createRecipe(null)).withRel("createRecipe"));
 
-        recipeService.deleteRecipe(id, user);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(model);
     }
+
+
 
 
     private EntityModel<RecipeDto> buildRecipeModel(Recipe recipe, User currentUser) {
