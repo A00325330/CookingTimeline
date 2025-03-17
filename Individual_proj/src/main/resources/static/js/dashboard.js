@@ -1,7 +1,8 @@
-import { fetchRecipes, fetchPublicRecipes, fetchTags, fetchRecipesByTag } from "./api.js";
+import { fetchRecipes, fetchPublicRecipes, fetchRecipesByTag } from "./api.js";
 import { showAddRecipeModal } from "./recipeForm.js";
 import { renderRecipeChart } from "./recipeChart.js";
 import { loadRecipeDropdown } from "./recipeDropdown.js";
+import { navigateTo } from "./spa.js";
 
 export async function loadDashboard() {
     const mainContent = document.getElementById("main-content");
@@ -34,65 +35,21 @@ export async function loadDashboard() {
                 <div id="selected-recipe" class="mt-3"></div>
                 <div id="recipe-chart-container" class="mt-4"></div>
             </div>
-        </div>
 
-        <!-- Tag Pop-Up Panel -->
-        <div id="tag-popup" class="popup hidden">
-            <div class="popup-content">
-                <span id="close-popup" class="close">&times;</span>
-                <h3 id="popup-title">Recipes with this Tag</h3>
-                <select id="popup-recipe-dropdown" class="form-select mt-2"></select>
+            <!-- Tag-Based Recipe Section -->
+            <div id="tag-recipe-section" class="hidden mt-4">
+                <h3 id="tag-title"></h3>
+                <div id="tag-recipe-list" class="mt-2"></div>
+                <button id="close-tag-section" class="btn btn-secondary mt-2">Close</button>
             </div>
         </div>
-
-        <style>
-            .popup {
-                display: none;
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                width: 50%;
-                background: white;
-                padding: 20px;
-                box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-                border-radius: 8px;
-                z-index: 1000;
-            }
-            .popup-content {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            .close {
-                position: absolute;
-                top: 10px;
-                right: 20px;
-                font-size: 24px;
-                cursor: pointer;
-            }
-            .hidden { display: none; }
-            .tag-card {
-                background: #f8f9fa;
-                padding: 10px 15px;
-                border-radius: 8px;
-                cursor: pointer;
-                flex-shrink: 0;
-                text-align: center;
-                min-width: 150px;
-                max-width: 150px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-        </style>
     `;
 
     // ✅ Attach Event Listeners
     document.getElementById("add-recipe-btn").addEventListener("click", showAddRecipeModal);
     document.getElementById("logout-btn").addEventListener("click", handleLogout);
-    document.getElementById("close-popup").addEventListener("click", () => {
-        document.getElementById("tag-popup").classList.add("hidden");
+    document.getElementById("close-tag-section").addEventListener("click", () => {
+        document.getElementById("tag-recipe-section").style.display = "none";
     });
 
     // ✅ Fetch private & public recipes
@@ -115,12 +72,14 @@ export async function loadDashboard() {
     loadTagCards(privateRecipes, publicRecipes);
 }
 
-// 🔒 Logout
+// 🔒 Logout Function
 function handleLogout() {
-    localStorage.removeItem("token");
-    navigateTo("login");
+    console.log("🚪 Logging out...");
+    localStorage.removeItem("token"); // Remove authentication token
+    navigateTo("login"); // Redirect to login page
 }
 
+// ✅ Load Tags into Scrollable Cards
 async function loadTagCards(privateRecipes, publicRecipes) {
     const tagContainer = document.getElementById("tag-card-container");
     tagContainer.innerHTML = "";
@@ -129,7 +88,6 @@ async function loadTagCards(privateRecipes, publicRecipes) {
     [...privateRecipes, ...publicRecipes].forEach(recipe => {
         if (recipe.tags) {
             recipe.tags.forEach(tag => {
-                // ✅ Fix: Ensure we're storing only tag names, not full objects
                 if (typeof tag === "object" && tag.name) {
                     allTags.add(tag.name);
                 } else if (typeof tag === "string") {
@@ -140,15 +98,15 @@ async function loadTagCards(privateRecipes, publicRecipes) {
     });
 
     const tagsArray = Array.from(allTags);
-    console.log("📌 Processed Tags:", tagsArray); // ✅ Debugging
+    console.log("📌 Processed Tags:", tagsArray);
 
     tagsArray.forEach(tagName => {
         const tagCard = document.createElement("div");
         tagCard.className = "tag-card";
-        tagCard.textContent = tagName; // ✅ Fix: Ensure only the name is displayed
+        tagCard.textContent = tagName;
         tagCard.addEventListener("click", () => {
             console.log(`🖱️ Clicked on Tag: ${tagName}`);
-            openTagPopup(tagName);
+            openTagSection(tagName);
         });
         tagContainer.appendChild(tagCard);
     });
@@ -162,7 +120,8 @@ async function loadTagCards(privateRecipes, publicRecipes) {
     });
 }
 
-async function openTagPopup(tag) {
+// ✅ Open Tag-Based Recipe Section (No Popup)
+async function openTagSection(tag) {
     if (typeof tag !== "string") {
         console.error("❌ Invalid tag passed:", tag);
         return;
@@ -189,20 +148,24 @@ async function openTagPopup(tag) {
             return;
         }
 
-        // ✅ Display Recipes in a Simple List
+        // ✅ Display Recipes in a Simple List (Now Includes Ingredients)
         recipes.forEach(recipe => {
             const item = document.createElement("div");
-            item.className = "recipe-tag-item";
-            item.innerHTML = `<strong>${recipe.name}</strong><br><small>${recipe.description || "No description"}</small>`;
+            item.className = "recipe-tag-item card p-2 mb-2";
+            item.innerHTML = `
+                <strong>${recipe.name}</strong><br>
+                <small>${recipe.description || "No description"}</small>
+                <hr>
+                <p><strong>Ingredients:</strong></p>
+                <ul>
+                    ${recipe.ingredients.map(ing => `<li>${ing.name} - ${ing.cookingTime} mins (${ing.cookingMethod})</li>`).join("")}
+                </ul>
+            `;
             recipeList.appendChild(item);
         });
 
     } catch (error) {
-        console.error("❌ Error fetching recipes by tag:", err)}
-		document.getElementById("close-tag-section").addEventListener("click", () => {
-		    document.getElementById("tag-recipe-section").style.display = "none";
-		});
+        console.error("❌ Error fetching recipes by tag:", error);
+        recipeList.innerHTML = `<p class="text-danger">❌ Failed to load recipes.</p>`;
+    }
 }
-
-
-
