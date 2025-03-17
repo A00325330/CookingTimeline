@@ -62,13 +62,13 @@ public class AuthController {
             // 3) Build the HATEOAS response
             EntityModel<UserLoginResponse> entityModel = EntityModel.of(response);
 
-            // Self link (typically pass null instead of userLoginDto to avoid confusion)
+            // Self link (login itself)
             entityModel.add(
                 linkTo(methodOn(AuthController.class).createJwt(null))
                     .withSelfRel()
             );
 
-            // 🔥 FIX: Use a placeholder DTO to avoid the "method undefined" error
+            // Register link
             entityModel.add(
                 linkTo(methodOn(AuthController.class).registerUser(new UserRegistrationDto()))
                     .withRel("register")
@@ -88,7 +88,14 @@ public class AuthController {
                         linkTo(methodOn(UserController.class).getAllUsers())
                             .withRel("users")
                     );
+                } else {
+                    // ✅ Only non-admin users see "myRecipes"
+                    entityModel.add(
+                        linkTo(methodOn(RecipeController.class).getMyRecipes())
+                            .withRel("myRecipes")
+                    );
                 }
+
                 // ✅ Allow ALL authenticated users to create a PRIVATE recipe
                 entityModel.add(
                     linkTo(methodOn(RecipeController.class).createRecipe(null))
@@ -106,6 +113,7 @@ public class AuthController {
                     ));
         }
     }
+
 
 
     /**

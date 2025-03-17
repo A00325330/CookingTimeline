@@ -15,10 +15,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
@@ -29,16 +27,19 @@ public class RecipeController {
 
     private final IRecipeService recipeService;
     private final UserRepository userRepository;
-    private final TagRepository tagRepository; // ✅ Inject TagRepository
+    private final TagRepository tagRepository;
 
     public RecipeController(IRecipeService recipeService, UserRepository userRepository, TagRepository tagRepository) {
         this.recipeService = recipeService;
         this.userRepository = userRepository;
-        this.tagRepository = tagRepository; // ✅ Initialize it
+        this.tagRepository = tagRepository;
     }
 
+    /**
+     * ✅ Create a new recipe (returns RecipeDto)
+     */
     @PostMapping
-    public ResponseEntity<EntityModel<Recipe>> createRecipe(@RequestBody RecipeDto recipeDto) {
+    public ResponseEntity<EntityModel<RecipeDto>> createRecipe(@RequestBody RecipeDto recipeDto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -76,7 +77,7 @@ public class RecipeController {
                         .orElse(0)
         );
 
-        // ✅ Convert String tags into Tag entities
+        // Convert String tags into Tag entities
         List<Tag> tags = new ArrayList<>();
         if (recipeDto.getTags() != null) {
             for (String tagName : recipeDto.getTags()) {
@@ -94,10 +95,11 @@ public class RecipeController {
         return ResponseEntity.status(HttpStatus.CREATED).body(buildRecipeModel(savedRecipe, user));
     }
 
-
-
+    /**
+     * ✅ Get recipes created by the logged-in user (returns a list of RecipeDto)
+     */
     @GetMapping("/mine")
-    public ResponseEntity<CollectionModel<EntityModel<Recipe>>> getMyRecipes() {
+    public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getMyRecipes() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -110,12 +112,9 @@ public class RecipeController {
         }
 
         User user = optionalUser.get();
-        List<Recipe> myRecipes = recipeService.getUserRecipes(user)
-                .stream()
-                .map(this::detachRecipe)  // ✅ Ensures a detached copy before returning
-                .toList();
+        List<Recipe> myRecipes = recipeService.getUserRecipes(user);
 
-        List<EntityModel<Recipe>> recipeModels = myRecipes.stream()
+        List<EntityModel<RecipeDto>> recipeModels = myRecipes.stream()
                 .map(r -> buildRecipeModel(r, user))
                 .collect(Collectors.toList());
 
@@ -125,28 +124,11 @@ public class RecipeController {
     }
 
     /**
-     * ✅ Creates a detached copy of the recipe to prevent ConcurrentModificationException.
+     * ✅ Get all public recipes (returns RecipeDto list)
      */
-    private Recipe detachRecipe(Recipe recipe) {
-        Recipe copy = new Recipe();
-        copy.setId(recipe.getId());
-        copy.setName(recipe.getName());
-        copy.setDescription(recipe.getDescription());
-        copy.setSteps(new ArrayList<>(recipe.getSteps())); // Copy steps
-        copy.setIngredients(new ArrayList<>(recipe.getIngredients())); // Copy ingredients
-        copy.setVisibility(recipe.getVisibility());
-        copy.setUser(recipe.getUser());
-        
-        // ✅ Copy tags safely
-        copy.setTags(new ArrayList<>(recipe.getTags()));
-
-        return copy;
-    }
-
-
     @GetMapping("/public")
-    public ResponseEntity<CollectionModel<EntityModel<Recipe>>> getPublicRecipes() {
-        List<EntityModel<Recipe>> recipeModels = recipeService.getPublicRecipes().stream()
+    public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getPublicRecipes() {
+        List<EntityModel<RecipeDto>> recipeModels = recipeService.getPublicRecipes().stream()
                 .map(r -> buildRecipeModel(r, null))
                 .collect(Collectors.toList());
 
@@ -155,8 +137,11 @@ public class RecipeController {
         );
     }
 
+    /**
+     * ✅ Get a recipe by ID (only visible if public or belongs to user)
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<EntityModel<Recipe>> getRecipeById(@PathVariable Long id) {
+    public ResponseEntity<EntityModel<RecipeDto>> getRecipeById(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -182,12 +167,13 @@ public class RecipeController {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
+    /**
+     * ✅ Get recipes by tag (returns RecipeDto list)
+     */
     @GetMapping("/by-tag/{tagName}")
-    public ResponseEntity<List<Recipe>> getRecipesByTag(@PathVariable String tagName) {
+    public ResponseEntity<List<RecipeDto>> getRecipesByTag(@PathVariable String tagName) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
-            System.out.println("❌ No valid authentication found");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
@@ -195,26 +181,35 @@ public class RecipeController {
         Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
         User user = optionalUser.orElse(null);
 
-        System.out.println("✅ Authenticated user: " + (user != null ? user.getEmail() : "Guest"));
+        List<RecipeDto> recipes = recipeService.getRecipesByTag(tagName, user)
+                .stream()
+                .map(RecipeDto::fromEntity)
+                .toList();
 
-        return ResponseEntity.ok(recipeService.getRecipesByTag(tagName, user));
+        return ResponseEntity.ok(recipes);
     }
 
+    /**
+     * ✅ Convert Recipe entity to DTO and add HATEOAS links
+     */
+    private EntityModel<RecipeDto> buildRecipeModel(Recipe recipe, User currentUser) {
+        RecipeDto dto = RecipeDto.fromEntity(recipe); // Convert entity to DTO
 
-    private EntityModel<Recipe> buildRecipeModel(Recipe recipe, User currentUser) {
-        EntityModel<Recipe> recipeModel = EntityModel.of(
-                recipe,
+        EntityModel<RecipeDto> recipeModel = EntityModel.of(
+                dto,
                 linkTo(methodOn(RecipeController.class).getRecipeById(recipe.getId())).withSelfRel(),
                 linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes")
         );
 
+        // Add author link (avoiding exposing full user data)
         if (recipe.getUser() != null) {
             recipeModel.add(
                     linkTo(methodOn(UserController.class).getUserById(recipe.getUser().getId())).withRel("author")
             );
         }
 
-        if (currentUser != null && recipe.getUser().equals(currentUser)) {
+        // Add "mine" link if the recipe belongs to the current user
+        if (currentUser != null && recipe.getUser().getId().equals(currentUser.getId())) {
             recipeModel.add(
                     linkTo(methodOn(RecipeController.class).getMyRecipes()).withRel("mine")
             );
