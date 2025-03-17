@@ -160,12 +160,16 @@ public class RecipeController {
         }
 
         Recipe foundRecipe = recipeOpt.get();
-        if (foundRecipe.getVisibility() == Visibility.PUBLIC || foundRecipe.getUser().equals(user)) {
+
+        // ✅ Allow access if the recipe is PUBLIC or if the user is the OWNER
+        if (foundRecipe.getVisibility() == Visibility.PUBLIC || foundRecipe.getUser().getId().equals(user.getId())) {
             return ResponseEntity.ok(buildRecipeModel(foundRecipe, user));
         }
 
+        // ❌ If the recipe is private and not owned by the user, return Forbidden (403)
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
+
 
     /**
      * ✅ Get recipes by tag (returns RecipeDto list)
@@ -201,20 +205,30 @@ public class RecipeController {
                 linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes")
         );
 
-        // Add author link (avoiding exposing full user data)
+        // ✅ Add author link
         if (recipe.getUser() != null) {
             recipeModel.add(
                     linkTo(methodOn(UserController.class).getUserById(recipe.getUser().getId())).withRel("author")
             );
         }
 
-        // Add "mine" link if the recipe belongs to the current user
+        // ✅ Add "mine" link if the recipe belongs to the current user
         if (currentUser != null && recipe.getUser().getId().equals(currentUser.getId())) {
             recipeModel.add(
                     linkTo(methodOn(RecipeController.class).getMyRecipes()).withRel("mine")
             );
+
+            // ✅ Add direct links to ALL private recipes the user owns
+            List<Recipe> userRecipes = recipeService.getUserRecipes(currentUser);
+            userRecipes.forEach(userRecipe -> {
+                recipeModel.add(
+                        linkTo(methodOn(RecipeController.class).getRecipeById(userRecipe.getId()))
+                                .withRel("recipe_" + userRecipe.getId())
+                );
+            });
         }
 
         return recipeModel;
     }
+
 }
