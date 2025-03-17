@@ -4,27 +4,25 @@ import { renderRecipeChart } from "./recipeChart.js";
  * Populates the recipe dropdown with private and public recipes.
  */
 export function loadRecipeDropdown(privateRecipes, publicRecipes) {
-    const dropdown = document.getElementById("recipe-dropdown");
+    console.log("📥 Received Private Recipes:", privateRecipes);
+    console.log("📥 Received Public Recipes:", publicRecipes);
 
+    const dropdown = document.getElementById("recipe-dropdown");
     if (!dropdown) {
         console.error("❌ ERROR: Recipe dropdown not found.");
         return;
     }
 
-    console.log("📥 Private Recipes:", privateRecipes);
-    console.log("📥 Public Recipes:", publicRecipes);
-
     dropdown.innerHTML = `<option value="">-- Select a Recipe --</option>`; // Reset dropdown
 
-    // 1️⃣ Private Recipes
-    if (privateRecipes && privateRecipes.length > 0) {
+    if (privateRecipes.length > 0) {
         console.log("✅ Adding Private Recipes to Dropdown...");
         const privateGroup = document.createElement("optgroup");
         privateGroup.label = "Your Recipes";
         privateRecipes.forEach(recipe => {
             console.log(`🔹 Adding Private Recipe: ${recipe.name}`);
             const option = document.createElement("option");
-            option.value = `private-${recipe.id}`;
+            option.value = `private-${recipe.name}`;
             option.textContent = recipe.name;
             privateGroup.appendChild(option);
         });
@@ -33,15 +31,14 @@ export function loadRecipeDropdown(privateRecipes, publicRecipes) {
         console.warn("⚠️ No Private Recipes Found.");
     }
 
-    // 2️⃣ Public Recipes
-    if (publicRecipes && publicRecipes.length > 0) {
+    if (publicRecipes.length > 0) {
         console.log("✅ Adding Public Recipes to Dropdown...");
         const publicGroup = document.createElement("optgroup");
         publicGroup.label = "Public Recipes";
         publicRecipes.forEach(recipe => {
             console.log(`🔹 Adding Public Recipe: ${recipe.name}`);
             const option = document.createElement("option");
-            option.value = `public-${recipe.id}`;
+            option.value = `public-${recipe.name}`;
             option.textContent = recipe.name;
             publicGroup.appendChild(option);
         });
@@ -49,10 +46,8 @@ export function loadRecipeDropdown(privateRecipes, publicRecipes) {
     } else {
         console.warn("⚠️ No Public Recipes Found.");
     }
-
-    // ✅ Handle selection event
-    dropdown.addEventListener("change", () => displaySelectedRecipe(privateRecipes, publicRecipes));
 }
+
 
 /**
  * Displays the selected recipe details and renders its chart.

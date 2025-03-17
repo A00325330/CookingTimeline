@@ -5,8 +5,8 @@ async function loadRecipesPage() {
     const recipes = await fetchRecipes();
     
     const recipeList = document.getElementById("recipe-list");
-    if (recipes._embedded && recipes._embedded.recipes) {
-        recipes._embedded.recipes.forEach(recipe => {
+	if (recipes._embedded && recipes._embedded.recipeDtoList) {
+	    recipes._embedded.recipeDtoList.forEach(recipe => {
             const li = document.createElement("li");
             li.className = "list-group-item";
             li.textContent = recipe.name;

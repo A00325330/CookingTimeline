@@ -51,21 +51,23 @@ export async function loadDashboard() {
         document.getElementById("tag-recipe-section").style.display = "none";
     });
 
-    // ✅ Fetch private & public recipes
-    let [privateRecipes, publicRecipes] = await Promise.all([
-        fetchRecipes(),
-        fetchPublicRecipes()
-    ]);
+	let [privateRecipes, publicRecipes] = await Promise.all([
+	    fetchRecipes(),
+	    fetchPublicRecipes()
+	]);
 
-    // ✅ Extract HATEOAS `_embedded.recipeList`
-    privateRecipes = privateRecipes._embedded?.recipeList || [];
-    publicRecipes = publicRecipes._embedded?.recipeList || [];
+	console.log("📌 Raw Private Recipes:", privateRecipes);
+	console.log("📌 Raw Public Recipes:", publicRecipes);
 
-    console.log("✅ Private Recipes:", privateRecipes);
-    console.log("✅ Public Recipes:", publicRecipes);
+	// ✅ Fix: Ensure correct extraction
+	privateRecipes = privateRecipes || [];
+	publicRecipes = publicRecipes || [];
 
-    // ✅ Load Recipes into Dropdown
-    loadRecipeDropdown(privateRecipes, publicRecipes);
+	console.log("✅ Final Private Recipes:", privateRecipes);
+	console.log("✅ Final Public Recipes:", publicRecipes);
+
+	loadRecipeDropdown(privateRecipes, publicRecipes);
+
 
     // ✅ Load Tags into Scrollable Cards
     loadTagCards(privateRecipes, publicRecipes);
