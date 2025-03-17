@@ -136,9 +136,27 @@ export async function registerUser() {
         return;
     }
 
-    const data = await apiRequest("/auth/register", "POST", { email, password, role: "USER" }, false);
-    if (data) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password, role: "USER" }),
+        });
+
+        if (response.status === 400) {
+            alert("❌ Registration failed: User already exists or invalid data.");
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`Unexpected error: ${response.statusText}`);
+        }
+
         alert("✅ Registration successful! Please log in.");
         navigateTo("login");
+    } catch (error) {
+        console.error(error);
+        alert("❌ An error occurred. Please try again later.");
     }
 }
+
