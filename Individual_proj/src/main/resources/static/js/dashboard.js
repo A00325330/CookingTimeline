@@ -15,7 +15,6 @@ export async function loadDashboard() {
 
             <div class="d-flex gap-3">
                 <button id="add-recipe-btn" class="btn btn-success">➕ Add Recipe</button>
-                <button id="logout-btn" class="btn btn-danger">🚪 Logout</button>
             </div>
 
             <!-- Tag Scroll Section -->
