@@ -1,21 +1,27 @@
-// recipeForm.js
-import { saveRecipe } from "./api.js";
+import { saveRecipe, fetchTags } from "./api.js";
 import { loadDashboard } from "./dashboard.js";
-import { isAdmin } from "./adminCheck.js";  // <== We'll check roles here
+import { isAdmin } from "./adminCheck.js";  
 
 let ingredients = [];
+let selectedTags = [];  
 
-export function showAddRecipeModal() {
+export async function showAddRecipeModal() {
   const mainContent = document.getElementById("main-content");
   mainContent.innerHTML = `
     <div class="card p-4">
       <h2>Add New Recipe</h2>
-      <p>(It will be ${
-        isAdmin() ? "PUBLIC" : "PRIVATE"
-      } by default.)</p>
+      <p>(It will be ${isAdmin() ? "PUBLIC" : "PRIVATE"} by default.)</p>
 
       <input type="text" id="recipe-name" class="form-control mb-2" placeholder="Recipe Name" required />
       <textarea id="recipe-description" class="form-control mb-2" placeholder="Description" required></textarea>
+
+      <!-- ✅ Dynamic Tag Entry -->
+      <h5>Tags</h5>
+      <div class="d-flex">
+        <input type="text" id="manual-tag" class="form-control" placeholder="Enter a tag" />
+        <button id="add-tag-btn" class="btn btn-outline-primary ms-2">➕ Add</button>
+      </div>
+      <div id="tag-container" class="mt-2"></div> <!-- Tags appear here -->
 
       <!-- Ingredients Section -->
       <h5>Ingredients</h5>
@@ -32,18 +38,43 @@ export function showAddRecipeModal() {
     </div>
   `;
 
-  // Reset any leftover
+  // Reset variables
   ingredients = [];
+  selectedTags = [];
 
-  document
-    .getElementById("add-ingredient-btn")
-    .addEventListener("click", addIngredient);
-
-  document
-    .getElementById("submit-recipe-btn")
-    .addEventListener("click", submitRecipe);
+  // Attach event listeners
+  document.getElementById("add-ingredient-btn").addEventListener("click", addIngredient);
+  document.getElementById("submit-recipe-btn").addEventListener("click", submitRecipe);
+  document.getElementById("add-tag-btn").addEventListener("click", addTag);
 }
 
+// ✅ Add Tags to List Dynamically
+function addTag() {
+  const tagInput = document.getElementById("manual-tag");
+  const tagContainer = document.getElementById("tag-container");
+  const tagValue = tagInput.value.trim();
+
+  if (!tagValue) return; // Prevent empty tags
+  if (selectedTags.includes(tagValue)) return; // Prevent duplicates
+
+  selectedTags.push(tagValue); // Add to array
+
+  // Create tag element
+  const tagElement = document.createElement("span");
+  tagElement.className = "badge bg-primary me-2 p-2";
+  tagElement.innerHTML = `${tagValue} <button class="btn btn-sm btn-danger ms-2">❌</button>`;
+
+  // Remove tag when clicked
+  tagElement.querySelector("button").addEventListener("click", () => {
+    selectedTags = selectedTags.filter(tag => tag !== tagValue);
+    tagElement.remove();
+  });
+
+  tagContainer.appendChild(tagElement);
+  tagInput.value = ""; // Clear input
+}
+
+// ✅ Add Ingredients
 function addIngredient() {
   const name = document.getElementById("ingredient-name").value.trim();
   const time = +document.getElementById("ingredient-time").value.trim();
@@ -58,6 +89,7 @@ function addIngredient() {
   renderIngredientList();
 }
 
+// ✅ Render Ingredients List
 function renderIngredientList() {
   const container = document.getElementById("ingredient-list");
   container.innerHTML = "";
@@ -79,6 +111,7 @@ function renderIngredientList() {
   });
 }
 
+// ✅ Submit Recipe with Selected Tags
 async function submitRecipe() {
   const name = document.getElementById("recipe-name").value.trim();
   const description = document.getElementById("recipe-description").value.trim();
@@ -88,19 +121,16 @@ async function submitRecipe() {
     return;
   }
 
-  // 🔑 Key difference: set visibility based on isAdmin()
   const visibility = isAdmin() ? "PUBLIC" : "PRIVATE";
 
   const recipeData = {
     name,
     description,
     ingredients,
-    visibility
+    visibility,
+    tags: selectedTags // ✅ Use only manually added tags
   };
 
-  // Save
   await saveRecipe(recipeData);
-
-  // Return to dashboard
   loadDashboard();
 }

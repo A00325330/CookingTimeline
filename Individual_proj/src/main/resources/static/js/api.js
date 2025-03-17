@@ -1,148 +1,116 @@
-// api.js
 import { navigateTo } from "./spa.js";
 
-// 1️⃣ Save a new private recipe
+const API_BASE_URL = "http://localhost:8081/api";
+
+/**
+ * Helper function to make API requests.
+ * @param {string} endpoint - API endpoint.
+ * @param {string} method - HTTP method (GET, POST, PUT, etc.).
+ * @param {Object} [body] - Request body (optional).
+ * @param {boolean} [authRequired] - Whether authentication is needed (default: true).
+ * @returns {Promise<Object|Array|null>} - JSON response or null on error.
+ */
+async function apiRequest(endpoint, method = "GET", body = null, authRequired = true) {
+    const headers = { "Content-Type": "application/json" };
+    const token = localStorage.getItem("token");
+
+    if (authRequired && !token) {
+        alert("❌ Not authenticated. Please log in.");
+        navigateTo("login");
+        return null;
+    }
+
+    if (authRequired) headers["Authorization"] = `Bearer ${token}`;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method,
+            headers,
+            body: body ? JSON.stringify(body) : null,
+        });
+
+        if (response.status === 401) {
+            alert("Session expired. Logging out...");
+            localStorage.removeItem("token");
+            navigateTo("login");
+            return null;
+        }
+
+        if (!response.ok) {
+            throw new Error(`❌ API Error: ${response.statusText} (Status: ${response.status})`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error(`🚨 ERROR: ${method} ${endpoint} failed`, error);
+        alert(`❌ Request failed: ${error.message}`);
+        return null;
+    }
+}
+
+// 🔹 Recipe Actions
 export async function saveRecipe(recipe) {
-    const token = localStorage.getItem("token");
-    if (!token) {
-        alert("❌ Not authenticated. Please log in.");
-        return;
-    }
-
-    try {
-        console.log("📤 Sending Recipe Data:", recipe);
-
-        const response = await fetch("http://localhost:8081/api/recipes", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(recipe),
-        });
-
-        if (!response.ok) {
-            throw new Error(`❌ Failed to save recipe. Status: ${response.status}`);
-        }
-
-        alert("✅ Recipe saved successfully!");
-        // Optionally refetch or do something else
-    } catch (error) {
-        console.error("🚨 ERROR: Saving recipe failed", error);
-        alert("❌ Could not save recipe.");
-    }
+    return apiRequest("/recipes", "POST", recipe);
 }
 
-// 2️⃣ Update an existing recipe (if you have a PUT endpoint)
 export async function updateRecipe(recipeId, updatedRecipe) {
-    const token = localStorage.getItem("token");
-    if (!token) {
-        alert("❌ Not authenticated. Please log in.");
-        return false;
-    }
-
-    try {
-        const response = await fetch(`http://localhost:8081/api/recipes/${recipeId}`, {
-            method: "PUT",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatedRecipe),
-        });
-
-        if (!response.ok) {
-            throw new Error(`❌ Failed to update recipe. Status: ${response.status}`);
-        }
-
-        console.log("✅ Recipe updated successfully!");
-        return true;
-    } catch (error) {
-        console.error("🚨 ERROR: Updating recipe failed", error);
-        return false;
-    }
+    return apiRequest(`/recipes/${recipeId}`, "PUT", updatedRecipe);
 }
 
-// 3️⃣ Fetch user's *private* recipes
 export async function fetchRecipes() {
+    return apiRequest("/recipes/mine");
+}
+
+export async function fetchPublicRecipes() {
+    return apiRequest("/recipes/public", "GET", null, false);
+}
+
+// 🔹 Tags Actions
+export async function fetchTags() {
     const token = localStorage.getItem("token");
     if (!token) {
-        alert("❌ Not authenticated. Please log in.");
+        console.error("🚨 ERROR: No auth token. Cannot fetch tags.");
         return [];
     }
 
     try {
-        const response = await fetch("http://localhost:8081/api/recipes/mine", {
+        const response = await fetch("http://localhost:8081/api/tags", {
             method: "GET",
             headers: {
-                "Authorization": `Bearer ${token}`,
+                "Authorization": `Bearer ${token}`,  // 🔥 Include token
                 "Content-Type": "application/json",
             },
         });
 
         if (!response.ok) {
-            throw new Error(`❌ Error fetching recipes. Status: ${response.status}`);
+            throw new Error(`❌ Error fetching tags. Status: ${response.status}`);
         }
 
-        const data = await response.json();
-        console.log("📥 Private recipes fetched:", data);
-
-        // If response has _embedded.recipeList
-        if (data._embedded && data._embedded.recipeList) {
-            return data._embedded.recipeList;
-        }
-        // If it’s a direct array
-        if (Array.isArray(data)) {
-            return data;
-        }
-
-        console.error("🚨 Unexpected response format:", data);
-        return [];
-
+        return await response.json();
     } catch (error) {
-        console.error("🚨 ERROR: Fetching recipes failed", error);
-        alert("❌ Could not fetch private recipes.");
+        console.error("🚨 ERROR: Fetching tags failed", error);
         return [];
     }
 }
 
-// 4️⃣ Fetch *public* recipes
-export async function fetchPublicRecipes() {
+
+export async function fetchRecipesByTag(tagName) {
+    if (typeof tagName !== "string") {
+        console.error("❌ fetchRecipesByTag received invalid input:", tagName);
+        return [];
+    }
+
     try {
-        const response = await fetch("http://localhost:8081/api/recipes/public", {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`❌ Error fetching public recipes. Status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("📥 Public recipes fetched:", data);
-
-        // If response has _embedded.recipeList
-        if (data._embedded && data._embedded.recipeList) {
-            return data._embedded.recipeList;
-        }
-        // If it’s a direct array
-        if (Array.isArray(data)) {
-            return data;
-        }
-
-        console.error("🚨 Unexpected public response format:", data);
-        return [];
-
+        console.log(`📥 Fetching recipes for tag: "${tagName}"`);
+        return await apiRequest(`/recipes/by-tag/${encodeURIComponent(tagName)}`);
     } catch (error) {
-        console.error("🚨 ERROR: Fetching public recipes failed", error);
-        alert("❌ Could not fetch public recipes.");
+        console.error("❌ Error fetching recipes by tag:", error);
         return [];
     }
 }
 
-// 5️⃣ Login user
+
+// 🔹 Authentication
 export async function loginUser() {
     const email = document.getElementById("login-email")?.value.trim();
     const password = document.getElementById("login-password")?.value.trim();
@@ -152,28 +120,13 @@ export async function loginUser() {
         return;
     }
 
-    try {
-        const response = await fetch("http://localhost:8081/api/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-        });
-
-        if (!response.ok) {
-            alert("❌ Login failed. Please check your credentials.");
-            return;
-        }
-
-        const data = await response.json();
+    const data = await apiRequest("/auth/login", "POST", { email, password }, false);
+    if (data) {
         localStorage.setItem("token", data.token);
-        navigateTo("dashboard");  // 🔥 Redirects to Dashboard
-    } catch (error) {
-        console.error("🚨 ERROR: Login request failed", error);
-        alert("❌ Login request failed.");
+        navigateTo("dashboard");
     }
 }
 
-// 6️⃣ Register user
 export async function registerUser() {
     const email = document.getElementById("register-email")?.value.trim();
     const password = document.getElementById("register-password")?.value.trim();
@@ -183,27 +136,9 @@ export async function registerUser() {
         return;
     }
 
-    try {
-        const response = await fetch("http://localhost:8081/api/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email: email,
-                password: password,
-                role: "USER", // 🔥 Ensure normal users get role USER
-            }),
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            alert("❌ Registration failed: " + (errorData.message || "Try a different email."));
-            return;
-        }
-
+    const data = await apiRequest("/auth/register", "POST", { email, password, role: "USER" }, false);
+    if (data) {
         alert("✅ Registration successful! Please log in.");
         navigateTo("login");
-    } catch (error) {
-        console.error("🚨 ERROR: Registration request failed", error);
-        alert("❌ Registration request failed.");
     }
 }
