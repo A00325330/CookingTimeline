@@ -126,35 +126,29 @@ async function loadTagCards(privateRecipes, publicRecipes) {
     });
 }
 
-// ✅ Open Tag-Based Recipe Section (No Popup)
 async function openTagSection(tag) {
-    if (typeof tag !== "string") {
-        console.error("❌ Invalid tag passed:", tag);
-        return;
-    }
-
     console.log(`📥 Fetching recipes for tag: "${tag}"`);
 
     const tagSection = document.getElementById("tag-recipe-section");
     const tagTitle = document.getElementById("tag-title");
     const recipeList = document.getElementById("tag-recipe-list");
 
-    // ✅ Show Section & Update Title
     tagSection.style.display = "block";
     tagTitle.textContent = `Recipes for: ${tag}`;
-    recipeList.innerHTML = ""; // Clear previous results
+    recipeList.innerHTML = "";
 
     try {
-        // ✅ Fetch Recipes for the Tag
         const recipes = await fetchRecipesByTag(tag);
+        
+        // ✅ Debugging log
+        console.log(`✅ Found ${recipes?.length || 0} recipes for tag "${tag}"`, recipes);
 
-        if (!recipes || recipes.length === 0) {
+        if (!Array.isArray(recipes) || recipes.length === 0) {
             console.warn(`⚠️ No recipes found for tag: ${tag}`);
             recipeList.innerHTML = `<p class="text-danger">❌ No recipes found.</p>`;
             return;
         }
 
-        // ✅ Display Recipes in a Simple List (Now Includes Ingredients)
         recipes.forEach(recipe => {
             const item = document.createElement("div");
             item.className = "recipe-tag-item card p-2 mb-2";
@@ -164,7 +158,7 @@ async function openTagSection(tag) {
                 <hr>
                 <p><strong>Ingredients:</strong></p>
                 <ul>
-                    ${recipe.ingredients.map(ing => `<li>${ing.name} - ${ing.cookingTime} mins (${ing.cookingMethod})</li>`).join("")}
+                    ${recipe.ingredients?.map(ing => `<li>${ing.name} - ${ing.cookingTime} mins (${ing.cookingMethod})</li>`).join("") || "<li>No ingredients listed</li>"}
                 </ul>
             `;
             recipeList.appendChild(item);
@@ -175,3 +169,5 @@ async function openTagSection(tag) {
         recipeList.innerHTML = `<p class="text-danger">❌ Failed to load recipes.</p>`;
     }
 }
+
+

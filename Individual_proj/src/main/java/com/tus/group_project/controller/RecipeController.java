@@ -32,6 +32,34 @@ public class RecipeController {
         this.userRepository = userRepository;
         this.tagRepository = tagRepository;
     }
+    @GetMapping("/by-tag/{tagName}")
+    public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getRecipesByTag(@PathVariable String tagName) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        final User user; // Declare as final
+
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+        } else {
+            user = null; // Ensure it's explicitly assigned
+        }
+
+        List<Recipe> recipes = recipeService.getRecipesByTag(tagName, user);
+
+        if (recipes.isEmpty()) {
+            return ResponseEntity.ok(CollectionModel.of(Collections.emptyList(),
+                linkTo(methodOn(RecipeController.class).getRecipesByTag(tagName)).withSelfRel()));
+        }
+
+        List<EntityModel<RecipeDto>> recipeModels = recipes.stream()
+            .map(recipe -> buildRecipeModel(recipe, user)) // ✅ Now user is effectively final
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(CollectionModel.of(recipeModels,
+            linkTo(methodOn(RecipeController.class).getRecipesByTag(tagName)).withSelfRel()));
+    }
+
 
     @PostMapping
     public ResponseEntity<EntityModel<RecipeDto>> createRecipe(@RequestBody RecipeDto recipeDto) {

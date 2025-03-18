@@ -101,20 +101,28 @@ export async function fetchTags() {
 }
 
 
-export async function fetchRecipesByTag(tagName) {
-    if (typeof tagName !== "string") {
-        console.error("❌ fetchRecipesByTag received invalid input:", tagName);
-        return [];
-    }
 
-    try {
-        console.log(`📥 Fetching recipes for tag: "${tagName}"`);
-        return await apiRequest(`/recipes/by-tag/${encodeURIComponent(tagName)}`);
-    } catch (error) {
-        console.error("❌ Error fetching recipes by tag:", error);
-        return [];
-    }
+export async function fetchRecipesByTag(tag) {
+    console.log(`📡 Fetching recipes for tag: ${tag}`);
+
+    // ✅ Fix URL concatenation
+    const url = `/recipes/by-tag/${encodeURIComponent(tag)}`;
+    console.log("🔍 Requesting:", url);
+
+    const response = await apiRequest(url, "GET");
+
+    console.log("✅ Raw API Response:", response);
+
+    // ✅ Ensure correct extraction
+    const recipes = response?._embedded?.recipeDtoList || [];
+
+    console.log(`✅ Extracted ${recipes.length} recipes for tag "${tag}"`, recipes);
+    return recipes;
 }
+
+
+
+
 
 
 // 🔹 Authentication

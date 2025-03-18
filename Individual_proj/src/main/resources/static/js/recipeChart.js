@@ -32,24 +32,28 @@ export function renderRecipeChart(recipe) {
         originalIngredient: ing
     }));
 
-    const margin = { top: 40, right: 160, bottom: 30, left: 180 };
-    const chartWidth = 600 - margin.left - margin.right;
-    const chartHeight = processedData.length * 50;
+	const margin = { top: 40, right: 150, bottom: 50, left: 200 }; 
+	const chartWidth = Math.min(window.innerWidth * 0.7, 900) - margin.left - margin.right; 
+	const chartHeight = processedData.length * 50;
 
-    const svg = d3.select(container)
-        .append("svg")
-        .attr("width", chartWidth + margin.left + margin.right)
-        .attr("height", chartHeight + margin.top + margin.bottom);
+	const svg = d3.select(container)
+	    .append("svg")
+	    .attr("width", chartWidth + margin.left + margin.right)
+	    .attr("height", chartHeight + margin.top + margin.bottom);
 
-    const g = svg.append("g")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
+	const g = svg.append("g")
+	    .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const totalTimeLabel = svg.append("text")
-        .attr("x", margin.left)
-        .attr("y", margin.top * 0.6)
-        .attr("font-size", "16px")
-        .attr("fill", "#333")
-        .text(`Total Time Left: (not started)`);
+	// **Timer for Total Cooking Time** (Dynamically positioned)
+	const totalTimeLabel = svg.append("text")
+	    .attr("x", chartWidth + margin.left - 20) // Moved to fit inside chart
+	    .attr("y", margin.top * 0.6)
+	    .attr("text-anchor", "end")  // Align text to the right
+	    .attr("font-size", "18px")
+	    .attr("font-weight", "bold")
+	    .attr("fill", "#333")
+	    .text(`Total Time Left: ${maxTime}m`);
+
 
     const xScale = d3.scaleLinear()
         .domain([0, maxTime])
@@ -110,13 +114,13 @@ export function renderRecipeChart(recipe) {
     const yAxis = d3.axisLeft(yScale);
     g.append("g").call(yAxis);
 
-    // 🔥 **Restored: "Start Cooking" Button**
+    // 🔥 **Positioned "Start Cooking" Button Below Chart**
     const startButton = document.createElement("button");
     startButton.textContent = "▶️ Start Cooking";
     startButton.classList.add("btn", "btn-primary", "mt-3");
     container.appendChild(startButton);
 
-    // 🔥 **Restored: Cooking Timer Functionality**
+    // 🔥 **Start Total Cooking Timer**
     attachCookingTimer({
         startButton,
         maxTime,
@@ -127,6 +131,7 @@ export function renderRecipeChart(recipe) {
 
     console.log("✅ Chart rendered successfully!");
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🔥 **Restored: Ingredient Edit Panel**
