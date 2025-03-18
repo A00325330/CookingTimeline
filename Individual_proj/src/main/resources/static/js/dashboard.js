@@ -56,17 +56,22 @@ export async function loadDashboard() {
 	    fetchPublicRecipes()
 	]);
 
-	console.log("📌 Raw Private Recipes:", privateRecipes);
-	console.log("📌 Raw Public Recipes:", publicRecipes);
+	// ✅ Debugging API Responses
+	console.log("📡 Raw API Response (Private Recipes):", privateRecipes);
+	console.log("📡 Raw API Response (Public Recipes):", publicRecipes);
 
-	// ✅ Fix: Ensure correct extraction
-	privateRecipes = privateRecipes || [];
-	publicRecipes = publicRecipes || [];
+	// 🛠 **Extracting Correctly**
+	privateRecipes = privateRecipes._embedded?.recipeDtoList || privateRecipes || [];
+	publicRecipes = publicRecipes._embedded?.recipeDtoList || publicRecipes || [];
+
 
 	console.log("✅ Final Private Recipes:", privateRecipes);
 	console.log("✅ Final Public Recipes:", publicRecipes);
 
+	// ✅ Load Recipes into Dropdown
 	loadRecipeDropdown(privateRecipes, publicRecipes);
+
+
 
 
     // ✅ Load Tags into Scrollable Cards

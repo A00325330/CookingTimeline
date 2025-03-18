@@ -57,21 +57,18 @@ export async function updateRecipe(recipeId, updatedRecipe) {
     return apiRequest(`/recipes/${recipeId}`, "PUT", updatedRecipe);
 }
 
-export async function fetchPublicRecipes() {
-    const response = await apiRequest("/recipes/public", "GET", null, false);
-    console.log("📡 Raw Public Recipes Response:", response);
-
-    // ✅ Ensure correct extraction
-    return response?._embedded?.recipeDtoList || [];
-}
-
 export async function fetchRecipes() {
     const response = await apiRequest("/recipes/mine", "GET", null, true);
-    console.log("📡 Raw Private Recipes Response:", response);
-
-    // ✅ Ensure correct extraction
+    console.log("📡 API Response for Private Recipes:", response);
     return response?._embedded?.recipeDtoList || [];
 }
+
+export async function fetchPublicRecipes() {
+    const response = await apiRequest("/recipes/public", "GET", null, false);
+    console.log("📡 API Response for Public Recipes:", response);
+    return response?._embedded?.recipeDtoList || [];
+}
+
 
 
 

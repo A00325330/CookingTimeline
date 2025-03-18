@@ -1,0 +1,952 @@
+diff --git a/Individual_proj/src/main/java/com/tus/group_project/controller/AuthController.java b/Individual_proj/src/main/java/com/tus/group_project/controller/AuthController.java
+index 2b6b924..cb300ed 100644
+--- a/Individual_proj/src/main/java/com/tus/group_project/controller/AuthController.java
++++ b/Individual_proj/src/main/java/com/tus/group_project/controller/AuthController.java
+@@ -62,13 +62,13 @@ public class AuthController {
+             // 3) Build the HATEOAS response
+             EntityModel<UserLoginResponse> entityModel = EntityModel.of(response);
+ 
+-            // Self link (typically pass null instead of userLoginDto to avoid confusion)
++            // Self link (login itself)
+             entityModel.add(
+                 linkTo(methodOn(AuthController.class).createJwt(null))
+                     .withSelfRel()
+             );
+ 
+-            // 🔥 FIX: Use a placeholder DTO to avoid the "method undefined" error
++            // Register link
+             entityModel.add(
+                 linkTo(methodOn(AuthController.class).registerUser(new UserRegistrationDto()))
+                     .withRel("register")
+@@ -88,7 +88,14 @@ public class AuthController {
+                         linkTo(methodOn(UserController.class).getAllUsers())
+                             .withRel("users")
+                     );
++                } else {
++                    // ✅ Only non-admin users see "myRecipes"
++                    entityModel.add(
++                        linkTo(methodOn(RecipeController.class).getMyRecipes())
++                            .withRel("myRecipes")
++                    );
+                 }
++
+                 // ✅ Allow ALL authenticated users to create a PRIVATE recipe
+                 entityModel.add(
+                     linkTo(methodOn(RecipeController.class).createRecipe(null))
+@@ -108,6 +115,7 @@ public class AuthController {
+     }
+ 
+ 
++
+     /**
+      * 🆕 Register a new user (USER role assigned by default) with HATEOAS links.
+      */
+diff --git a/Individual_proj/src/main/java/com/tus/group_project/controller/RecipeController.java b/Individual_proj/src/main/java/com/tus/group_project/controller/RecipeController.java
+index d972835..670153e 100644
+--- a/Individual_proj/src/main/java/com/tus/group_project/controller/RecipeController.java
++++ b/Individual_proj/src/main/java/com/tus/group_project/controller/RecipeController.java
+@@ -5,20 +5,16 @@ import com.tus.group_project.dao.UserRepository;
+ import com.tus.group_project.dto.RecipeDto;
+ import com.tus.group_project.model.*;
+ import com.tus.group_project.service.IRecipeService;
+-import org.springframework.hateoas.EntityModel;
+-import org.springframework.hateoas.CollectionModel;
+-import org.springframework.http.HttpStatus;
+-import org.springframework.http.ResponseEntity;
++import org.springframework.hateoas.*;
++import org.springframework.http.*;
+ import org.springframework.security.core.Authentication;
+ import org.springframework.security.core.context.SecurityContextHolder;
+ import org.springframework.security.core.userdetails.UserDetails;
++import org.springframework.security.core.userdetails.UsernameNotFoundException;
+ import org.springframework.web.bind.annotation.*;
++import org.springframework.web.server.ResponseStatusException;
+ 
+-import java.util.ArrayList;
+-import java.util.HashSet;
+-import java.util.List;
+-import java.util.Optional;
+-import java.util.Set;
++import java.util.*;
+ import java.util.stream.Collectors;
+ 
+ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+@@ -29,16 +25,16 @@ public class RecipeController {
+ 
+     private final IRecipeService recipeService;
+     private final UserRepository userRepository;
+-    private final TagRepository tagRepository; // ✅ Inject TagRepository
++    private final TagRepository tagRepository;
+ 
+     public RecipeController(IRecipeService recipeService, UserRepository userRepository, TagRepository tagRepository) {
+         this.recipeService = recipeService;
+         this.userRepository = userRepository;
+-        this.tagRepository = tagRepository; // ✅ Initialize it
++        this.tagRepository = tagRepository;
+     }
+ 
+     @PostMapping
+-    public ResponseEntity<EntityModel<Recipe>> createRecipe(@RequestBody RecipeDto recipeDto) {
++    public ResponseEntity<EntityModel<RecipeDto>> createRecipe(@RequestBody RecipeDto recipeDto) {
+         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+@@ -51,112 +47,54 @@ public class RecipeController {
+         }
+ 
+         User user = optionalUser.get();
+-        Recipe newRecipe = new Recipe();
+-        newRecipe.setName(recipeDto.getName());
+-        newRecipe.setDescription(recipeDto.getDescription());
+-        newRecipe.setSteps(recipeDto.getSteps());
+-        newRecipe.setVisibility(recipeDto.getVisibility());
+-        newRecipe.setUser(user);
+-
+-        List<RecipeIngredient> ingredientEntities = recipeDto.getIngredients().stream()
+-                .map(ingredientDto -> new RecipeIngredient(
+-                        null,
+-                        newRecipe,
+-                        ingredientDto.getName(),
+-                        ingredientDto.getCookingTime(),
+-                        ingredientDto.getCookingMethod()
+-                ))
+-                .toList();
+-        newRecipe.setIngredients(ingredientEntities);
+-
+-        newRecipe.setCookingTime(
+-                ingredientEntities.stream()
+-                        .mapToInt(RecipeIngredient::getCookingTime)
+-                        .max()
+-                        .orElse(0)
+-        );
+-
+-        // ✅ Convert String tags into Tag entities
+-        List<Tag> tags = new ArrayList<>();
+-        if (recipeDto.getTags() != null) {
+-            for (String tagName : recipeDto.getTags()) {
+-                Tag tag = tagRepository.findByName(tagName).orElseGet(() -> {
+-                    Tag newTag = new Tag();
+-                    newTag.setName(tagName);
+-                    return tagRepository.save(newTag);
+-                });
+-                tags.add(tag);
+-            }
+-        }
+-        newRecipe.setTags(tags);
+ 
++        // Correct instance method usage here:
++        Recipe newRecipe = recipeDto.toEntity(user, tagRepository);
+         Recipe savedRecipe = recipeService.createRecipe(newRecipe, user);
++
+         return ResponseEntity.status(HttpStatus.CREATED).body(buildRecipeModel(savedRecipe, user));
+     }
+ 
+ 
+-
+     @GetMapping("/mine")
+-    public ResponseEntity<CollectionModel<EntityModel<Recipe>>> getMyRecipes() {
++    public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getMyRecipes() {
+         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+-        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+-        }
+-
+         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+-        Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
+-        if (optionalUser.isEmpty()) {
+-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+-        }
++        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+ 
+-        User user = optionalUser.get();
+-        List<Recipe> myRecipes = recipeService.getUserRecipes(user)
+-                .stream()
+-                .map(this::detachRecipe)  // ✅ Ensures a detached copy before returning
+-                .toList();
+-
+-        List<EntityModel<Recipe>> recipeModels = myRecipes.stream()
+-                .map(r -> buildRecipeModel(r, user))
+-                .collect(Collectors.toList());
+-
+-        return ResponseEntity.ok(
+-                CollectionModel.of(recipeModels, linkTo(methodOn(RecipeController.class).getMyRecipes()).withSelfRel())
+-        );
+-    }
++        List<EntityModel<RecipeDto>> recipeModels = recipeService.getUserRecipes(user).stream()
++            .map(r -> buildRecipeModel(r, user)).collect(Collectors.toList());
+ 
+-    /**
+-     * ✅ Creates a detached copy of the recipe to prevent ConcurrentModificationException.
+-     */
+-    private Recipe detachRecipe(Recipe recipe) {
+-        Recipe copy = new Recipe();
+-        copy.setId(recipe.getId());
+-        copy.setName(recipe.getName());
+-        copy.setDescription(recipe.getDescription());
+-        copy.setSteps(new ArrayList<>(recipe.getSteps())); // Copy steps
+-        copy.setIngredients(new ArrayList<>(recipe.getIngredients())); // Copy ingredients
+-        copy.setVisibility(recipe.getVisibility());
+-        copy.setUser(recipe.getUser());
+-        
+-        // ✅ Copy tags safely
+-        copy.setTags(new ArrayList<>(recipe.getTags()));
+-
+-        return copy;
++        return ResponseEntity.ok(CollectionModel.of(recipeModels,
++            linkTo(methodOn(RecipeController.class).getMyRecipes()).withSelfRel()));
+     }
+ 
+-
+     @GetMapping("/public")
+-    public ResponseEntity<CollectionModel<EntityModel<Recipe>>> getPublicRecipes() {
+-        List<EntityModel<Recipe>> recipeModels = recipeService.getPublicRecipes().stream()
+-                .map(r -> buildRecipeModel(r, null))
+-                .collect(Collectors.toList());
+-
+-        return ResponseEntity.ok(
+-                CollectionModel.of(recipeModels, linkTo(methodOn(RecipeController.class).getPublicRecipes()).withSelfRel())
+-        );
++    public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getPublicRecipes() {
++        List<EntityModel<RecipeDto>> recipes = recipeService.getPublicRecipes().stream()
++            .map(r -> buildRecipeModel(r, null)).collect(Collectors.toList());
++
++        return ResponseEntity.ok(CollectionModel.of(recipes,
++            linkTo(methodOn(RecipeController.class).getPublicRecipes()).withSelfRel()));
+     }
+ 
+     @GetMapping("/{id}")
+-    public ResponseEntity<EntityModel<Recipe>> getRecipeById(@PathVariable Long id) {
++    public ResponseEntity<EntityModel<RecipeDto>> getRecipeById(@PathVariable Long id) {
++        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
++        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
++        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
++
++        Recipe recipe = recipeService.getRecipeById(id).orElseThrow();
++
++        if (recipe.getVisibility() == Visibility.PUBLIC || recipe.getUser().equals(user)) {
++            return ResponseEntity.ok(buildRecipeModel(recipe, user));
++        }
++
++        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
++    }
++
++    @PutMapping("/{id}")
++    public ResponseEntity<EntityModel<RecipeDto>> updateRecipe(@PathVariable Long id, @RequestBody RecipeDto recipeDto) {
+         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+@@ -169,57 +107,67 @@ public class RecipeController {
+         }
+ 
+         User user = optionalUser.get();
+-        Optional<Recipe> recipeOpt = recipeService.getRecipeById(id);
+-        if (recipeOpt.isEmpty()) {
+-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
++        Optional<Recipe> existingRecipeOpt = recipeService.getRecipeById(id);
++        if (existingRecipeOpt.isEmpty() || !existingRecipeOpt.get().getUser().equals(user)) {
++            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+         }
+ 
+-        Recipe foundRecipe = recipeOpt.get();
+-        if (foundRecipe.getVisibility() == Visibility.PUBLIC || foundRecipe.getUser().equals(user)) {
+-            return ResponseEntity.ok(buildRecipeModel(foundRecipe, user));
+-        }
++        Recipe existingRecipe = existingRecipeOpt.get();
++        recipeDto.updateEntity(existingRecipe, tagRepository);
++        Recipe updatedRecipe = recipeService.updateRecipe(id, existingRecipe, user);
+ 
+-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
++        return ResponseEntity.ok(buildRecipeModel(updatedRecipe, user));
+     }
+ 
+-    @GetMapping("/by-tag/{tagName}")
+-    public ResponseEntity<List<Recipe>> getRecipesByTag(@PathVariable String tagName) {
+-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
++    @DeleteMapping("/{id}")
++    public ResponseEntity<RepresentationModel<?>> deleteRecipe(@PathVariable Long id) {
++        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+ 
+-        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+-            System.out.println("❌ No valid authentication found");
++        if (auth == null || !(auth.getPrincipal() instanceof UserDetails)) {
+             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+         }
+ 
+-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+-        Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
+-        User user = optionalUser.orElse(null);
++        UserDetails userDetails = (UserDetails) auth.getPrincipal();
++        User user = userRepository.findByEmail(userDetails.getUsername())
++                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
++
++        try {
++            recipeService.deleteRecipe(id, user);
++        } catch (ResponseStatusException ex) {
++            return ResponseEntity.status(ex.getStatusCode()).build();
++        }
+ 
+-        System.out.println("✅ Authenticated user: " + (user != null ? user.getEmail() : "Guest"));
++        RepresentationModel<?> model = new RepresentationModel<>();
++        model.add(linkTo(methodOn(RecipeController.class).getMyRecipes()).withRel("mine"));
++        model.add(linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes"));
++        model.add(linkTo(methodOn(RecipeController.class).createRecipe(null)).withRel("createRecipe"));
+ 
+-        return ResponseEntity.ok(recipeService.getRecipesByTag(tagName, user));
++        return ResponseEntity.ok(model);
+     }
+ 
+ 
+-    private EntityModel<Recipe> buildRecipeModel(Recipe recipe, User currentUser) {
+-        EntityModel<Recipe> recipeModel = EntityModel.of(
+-                recipe,
+-                linkTo(methodOn(RecipeController.class).getRecipeById(recipe.getId())).withSelfRel(),
+-                linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes")
+-        );
++
++
++    private EntityModel<RecipeDto> buildRecipeModel(Recipe recipe, User currentUser) {
++        RecipeDto dto = RecipeDto.fromEntity(recipe);
++        EntityModel<RecipeDto> recipeModel = EntityModel.of(dto,
++            linkTo(methodOn(RecipeController.class).getRecipeById(recipe.getId())).withSelfRel(),
++            linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes"));
+ 
+         if (recipe.getUser() != null) {
+-            recipeModel.add(
+-                    linkTo(methodOn(UserController.class).getUserById(recipe.getUser().getId())).withRel("author")
+-            );
++            recipeModel.add(linkTo(methodOn(UserController.class)
++                .getUserById(recipe.getUser().getId())).withRel("author"));
+         }
+ 
+         if (currentUser != null && recipe.getUser().equals(currentUser)) {
+-            recipeModel.add(
+-                    linkTo(methodOn(RecipeController.class).getMyRecipes()).withRel("mine")
+-            );
++            recipeModel.add(linkTo(methodOn(RecipeController.class)
++                .getMyRecipes()).withRel("mine"));
++
++            recipeService.getUserRecipes(currentUser).forEach(userRecipe ->
++                recipeModel.add(linkTo(methodOn(RecipeController.class)
++                    .getRecipeById(userRecipe.getId())).withRel("recipe_" + userRecipe.getId())));
+         }
+ 
+         return recipeModel;
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/Individual_proj/src/main/java/com/tus/group_project/dto/RecipeDto.java b/Individual_proj/src/main/java/com/tus/group_project/dto/RecipeDto.java
+index cebf23b..0ed6fca 100644
+--- a/Individual_proj/src/main/java/com/tus/group_project/dto/RecipeDto.java
++++ b/Individual_proj/src/main/java/com/tus/group_project/dto/RecipeDto.java
+@@ -4,13 +4,14 @@ import lombok.Data;
+ import java.time.LocalDateTime;
+ import java.util.ArrayList;
+ import java.util.List;
+-import java.util.Set;
+ import java.util.stream.Collectors;
+ 
++import com.tus.group_project.dao.TagRepository;
+ import com.tus.group_project.model.Recipe;
+ import com.tus.group_project.model.Tag;
+ import com.tus.group_project.model.Visibility;
+-import com.tus.group_project.model.RecipeIngredient; 
++import com.tus.group_project.model.RecipeIngredient;
++import com.tus.group_project.model.User;
+ 
+ @Data
+ public class RecipeDto {
+@@ -21,8 +22,8 @@ public class RecipeDto {
+     private Visibility visibility;
+     private LocalDateTime startTime;
+     private LocalDateTime finishTime;
+-    private List<String> tags;  
+-    private List<IngredientDto> ingredients;  
++    private List<String> tags;
++    private List<IngredientDto> ingredients;
+ 
+     public static RecipeDto fromEntity(Recipe recipe) {
+         RecipeDto dto = new RecipeDto();
+@@ -34,10 +35,8 @@ public class RecipeDto {
+         dto.setStartTime(recipe.getStartTime());
+         dto.setFinishTime(recipe.getFinishTime());
+ 
+-        // ✅ Defensive Copy of `Set<Tag>` before processing
+         dto.setTags(new ArrayList<>(recipe.getTags()).stream().map(Tag::getName).toList());
+ 
+-        // ✅ Defensive Copy of `Set<RecipeIngredient>` before processing
+         dto.setIngredients(new ArrayList<>(recipe.getIngredients()).stream()
+             .map(IngredientDto::fromEntity)
+             .toList());
+@@ -45,6 +44,93 @@ public class RecipeDto {
+         return dto;
+     }
+ 
++    public Recipe toEntity(User user, TagRepository tagRepository) {
++        Recipe recipe = new Recipe();
++        recipe.setName(this.name);
++        recipe.setDescription(this.description);
++        recipe.setSteps(this.steps);
++        recipe.setVisibility(this.visibility);
++        recipe.setStartTime(this.startTime);
++        recipe.setFinishTime(this.finishTime);
++        recipe.setUser(user);
++
++        List<Tag> tagEntities = (tags != null) ? tags.stream()
++            .map(tagName -> tagRepository.findByName(tagName)
++                .orElseGet(() -> {
++                    Tag newTag = new Tag();
++                    newTag.setName(tagName);
++                    return tagRepository.save(newTag);
++                }))
++            .collect(Collectors.toList()) : new ArrayList<>();
++
++        recipe.setTags(tagEntities);
++
++        List<RecipeIngredient> ingredientEntities = (ingredients != null) ? ingredients.stream()
++            .map(ingredientDto -> {
++                RecipeIngredient ingredient = new RecipeIngredient();
++                ingredient.setRecipe(recipe);
++                ingredient.setName(ingredientDto.getName());
++                ingredient.setCookingTime(ingredientDto.getCookingTime());
++                ingredient.setCookingMethod(ingredientDto.getCookingMethod());
++                return ingredient;
++            })
++            .collect(Collectors.toList()) : new ArrayList<>();
++
++        recipe.setIngredients(ingredientEntities);
++
++        recipe.setCookingTime(
++            ingredientEntities.stream()
++                .mapToInt(RecipeIngredient::getCookingTime)
++                .max()
++                .orElse(0)
++        );
++
++        return recipe;
++    }
++
++    public void updateEntity(Recipe recipe, TagRepository tagRepository) {
++        recipe.setName(this.name);
++        recipe.setDescription(this.description);
++        recipe.setSteps(this.steps);
++        recipe.setVisibility(this.visibility);
++        recipe.setStartTime(this.startTime);
++        recipe.setFinishTime(this.finishTime);
++
++        List<Tag> tagEntities = (tags != null) ? tags.stream()
++            .map(tagName -> tagRepository.findByName(tagName)
++                .orElseGet(() -> {
++                    Tag newTag = new Tag();
++                    newTag.setName(tagName);
++                    return tagRepository.save(newTag);
++                }))
++            .collect(Collectors.toList()) : new ArrayList<>();
++
++        recipe.setTags(tagEntities);
++
++        recipe.getIngredients().clear();
++
++        if (ingredients != null) {
++            List<RecipeIngredient> ingredientEntities = ingredients.stream()
++                .map(ingredientDto -> {
++                    RecipeIngredient ingredient = new RecipeIngredient();
++                    ingredient.setRecipe(recipe);
++                    ingredient.setName(ingredientDto.getName());
++                    ingredient.setCookingTime(ingredientDto.getCookingTime());
++                    ingredient.setCookingMethod(ingredientDto.getCookingMethod());
++                    return ingredient;
++                })
++                .collect(Collectors.toList());
++
++            recipe.getIngredients().addAll(ingredientEntities);
++
++            recipe.setCookingTime(
++                ingredientEntities.stream()
++                    .mapToInt(RecipeIngredient::getCookingTime)
++                    .max()
++                    .orElse(0)
++            );
++        }
++    }
+ 
+     @Data
+     public static class IngredientDto {
+diff --git a/Individual_proj/src/main/java/com/tus/group_project/dto/UserDto.java b/Individual_proj/src/main/java/com/tus/group_project/dto/UserDto.java
+index 4316c10..35a3161 100644
+--- a/Individual_proj/src/main/java/com/tus/group_project/dto/UserDto.java
++++ b/Individual_proj/src/main/java/com/tus/group_project/dto/UserDto.java
+@@ -1,13 +1,13 @@
+ package com.tus.group_project.dto;
+ 
+ import com.tus.group_project.model.Role;
+-
+ import lombok.Getter;
+ import lombok.Setter;
+ 
+ @Setter
+ @Getter
+ public class UserDto {
+-	private String email;
+-	private Role role;
++    private Long id;       // ✅ Store user ID for HATEOAS links
++    private String email;  // ✅ User email
++    private Role role;     // ✅ Store a single role instead of a Set<Role>
+ }
+diff --git a/Individual_proj/src/main/java/com/tus/group_project/service/IRecipeService.java b/Individual_proj/src/main/java/com/tus/group_project/service/IRecipeService.java
+index 3682405..31231aa 100644
+--- a/Individual_proj/src/main/java/com/tus/group_project/service/IRecipeService.java
++++ b/Individual_proj/src/main/java/com/tus/group_project/service/IRecipeService.java
+@@ -1,27 +1,31 @@
+ package com.tus.group_project.service;
+ 
+ import com.tus.group_project.model.Recipe;
+-import com.tus.group_project.model.RecipeIngredient;
+ import com.tus.group_project.model.Tag;
+ import com.tus.group_project.model.User;
+ 
+ import java.util.List;
+ import java.util.Optional;
+-import java.util.Set;
+ 
+ public interface IRecipeService {
++
+     Recipe createRecipe(Recipe recipe, User user);
++
+     Optional<Recipe> getRecipeById(Long id);
++
++    Optional<Recipe> getRecipeById(Long id, User user);
++
+     List<Recipe> getPublicRecipes();
++
+     List<Recipe> getUserRecipes(User user);
+-    Optional<Recipe> getRecipeById(Long id, User user);
++
+     Recipe updateRecipe(Long id, Recipe updatedRecipe, User user);
+-    int calculateRecipeCookTime(Long recipeId);
++
+     void deleteRecipe(Long id, User user);
+ 
++    int calculateRecipeCookTime(Long recipeId);
+ 
++    List<Tag> getAllTags();
+ 
+-    // ✅ New methods for handling tags
+-    List<Tag> getAllTags(); // Fetch all available tags
+-	List<Recipe> getRecipesByTag(String tagName, User user);
++    List<Recipe> getRecipesByTag(String tagName, User user);
+ }
+diff --git a/Individual_proj/src/main/resources/static/index.html b/Individual_proj/src/main/resources/static/index.html
+index 54305a5..dc4c610 100644
+--- a/Individual_proj/src/main/resources/static/index.html
++++ b/Individual_proj/src/main/resources/static/index.html
+@@ -14,12 +14,14 @@
+     <div id="app" class="container mt-4">
+         <!-- Navigation -->
+         <nav class="d-flex justify-content-between align-items-center p-3 bg-white shadow-sm rounded">
+-            <h1>Recipe App</h1>
+-            <div id="nav-buttons">
+-                <button id="login-btn" class="btn btn-primary">Login</button>
+-                <button id="register-btn" class="btn btn-secondary">Register</button>
+-                <button id="logout-btn" class="btn btn-danger" style="display: none;">Logout</button>
+-            </div>
++            <h1>CookingTime</h1>
++        <!-- Top-right buttons aligned in a row -->
++<div id="nav-buttons" class="d-flex gap-2">
++    <button id="login-btn" class="btn btn-primary">Login</button>
++    <button id="register-btn" class="btn btn-secondary">Register</button>
++    <button id="logout-btn" class="btn btn-danger" style="display: none;">Logout</button>
++</div>
++
+         </nav>
+ 
+         <!-- Main Content -->
+diff --git a/Individual_proj/src/main/resources/static/js/api.js b/Individual_proj/src/main/resources/static/js/api.js
+index 4a0c6cc..2927abd 100644
+--- a/Individual_proj/src/main/resources/static/js/api.js
++++ b/Individual_proj/src/main/resources/static/js/api.js
+@@ -57,14 +57,24 @@ export async function updateRecipe(recipeId, updatedRecipe) {
+     return apiRequest(`/recipes/${recipeId}`, "PUT", updatedRecipe);
+ }
+ 
+-export async function fetchRecipes() {
+-    return apiRequest("/recipes/mine");
++export async function fetchPublicRecipes() {
++    const response = await apiRequest("/recipes/public", "GET", null, false);
++    console.log("📡 Raw Public Recipes Response:", response);
++
++    // ✅ Ensure correct extraction
++    return response?._embedded?.recipeDtoList || [];
+ }
+ 
+-export async function fetchPublicRecipes() {
+-    return apiRequest("/recipes/public", "GET", null, false);
++export async function fetchRecipes() {
++    const response = await apiRequest("/recipes/mine", "GET", null, true);
++    console.log("📡 Raw Private Recipes Response:", response);
++
++    // ✅ Ensure correct extraction
++    return response?._embedded?.recipeDtoList || [];
+ }
+ 
++
++
+ // 🔹 Tags Actions
+ export async function fetchTags() {
+     const token = localStorage.getItem("token");
+@@ -136,9 +146,27 @@ export async function registerUser() {
+         return;
+     }
+ 
+-    const data = await apiRequest("/auth/register", "POST", { email, password, role: "USER" }, false);
+-    if (data) {
++    try {
++        const response = await fetch(`${API_BASE_URL}/auth/register`, {
++            method: "POST",
++            headers: { "Content-Type": "application/json" },
++            body: JSON.stringify({ email, password, role: "USER" }),
++        });
++
++        if (response.status === 400) {
++            alert("❌ Registration failed: User already exists or invalid data.");
++            return;
++        }
++
++        if (!response.ok) {
++            throw new Error(`Unexpected error: ${response.statusText}`);
++        }
++
+         alert("✅ Registration successful! Please log in.");
+         navigateTo("login");
++    } catch (error) {
++        console.error(error);
++        alert("❌ An error occurred. Please try again later.");
+     }
+ }
++
+diff --git a/Individual_proj/src/main/resources/static/js/dashboard.js b/Individual_proj/src/main/resources/static/js/dashboard.js
+index 33a9085..66c283c 100644
+--- a/Individual_proj/src/main/resources/static/js/dashboard.js
++++ b/Individual_proj/src/main/resources/static/js/dashboard.js
+@@ -1,7 +1,8 @@
+-import { fetchRecipes, fetchPublicRecipes, fetchTags, fetchRecipesByTag } from "./api.js";
++import { fetchRecipes, fetchPublicRecipes, fetchRecipesByTag } from "./api.js";
+ import { showAddRecipeModal } from "./recipeForm.js";
+ import { renderRecipeChart } from "./recipeChart.js";
+ import { loadRecipeDropdown } from "./recipeDropdown.js";
++import { navigateTo } from "./spa.js";
+ 
+ export async function loadDashboard() {
+     const mainContent = document.getElementById("main-content");
+@@ -14,7 +15,6 @@ export async function loadDashboard() {
+ 
+             <div class="d-flex gap-3">
+                 <button id="add-recipe-btn" class="btn btn-success">➕ Add Recipe</button>
+-                <button id="logout-btn" class="btn btn-danger">🚪 Logout</button>
+             </div>
+ 
+             <!-- Tag Scroll Section -->
+@@ -34,93 +34,53 @@ export async function loadDashboard() {
+                 <div id="selected-recipe" class="mt-3"></div>
+                 <div id="recipe-chart-container" class="mt-4"></div>
+             </div>
+-        </div>
+ 
+-        <!-- Tag Pop-Up Panel -->
+-        <div id="tag-popup" class="popup hidden">
+-            <div class="popup-content">
+-                <span id="close-popup" class="close">&times;</span>
+-                <h3 id="popup-title">Recipes with this Tag</h3>
+-                <select id="popup-recipe-dropdown" class="form-select mt-2"></select>
++            <!-- Tag-Based Recipe Section -->
++            <div id="tag-recipe-section" class="hidden mt-4">
++                <h3 id="tag-title"></h3>
++                <div id="tag-recipe-list" class="mt-2"></div>
++                <button id="close-tag-section" class="btn btn-secondary mt-2">Close</button>
+             </div>
+         </div>
+-
+-        <style>
+-            .popup {
+-                display: none;
+-                position: fixed;
+-                top: 50%;
+-                left: 50%;
+-                transform: translate(-50%, -50%);
+-                width: 50%;
+-                background: white;
+-                padding: 20px;
+-                box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+-                border-radius: 8px;
+-                z-index: 1000;
+-            }
+-            .popup-content {
+-                display: flex;
+-                flex-direction: column;
+-                align-items: center;
+-            }
+-            .close {
+-                position: absolute;
+-                top: 10px;
+-                right: 20px;
+-                font-size: 24px;
+-                cursor: pointer;
+-            }
+-            .hidden { display: none; }
+-            .tag-card {
+-                background: #f8f9fa;
+-                padding: 10px 15px;
+-                border-radius: 8px;
+-                cursor: pointer;
+-                flex-shrink: 0;
+-                text-align: center;
+-                min-width: 150px;
+-                max-width: 150px;
+-                white-space: nowrap;
+-                overflow: hidden;
+-                text-overflow: ellipsis;
+-            }
+-        </style>
+     `;
+ 
+     // ✅ Attach Event Listeners
+     document.getElementById("add-recipe-btn").addEventListener("click", showAddRecipeModal);
+     document.getElementById("logout-btn").addEventListener("click", handleLogout);
+-    document.getElementById("close-popup").addEventListener("click", () => {
+-        document.getElementById("tag-popup").classList.add("hidden");
++    document.getElementById("close-tag-section").addEventListener("click", () => {
++        document.getElementById("tag-recipe-section").style.display = "none";
+     });
+ 
+-    // ✅ Fetch private & public recipes
+-    let [privateRecipes, publicRecipes] = await Promise.all([
+-        fetchRecipes(),
+-        fetchPublicRecipes()
+-    ]);
++	let [privateRecipes, publicRecipes] = await Promise.all([
++	    fetchRecipes(),
++	    fetchPublicRecipes()
++	]);
++
++	console.log("📌 Raw Private Recipes:", privateRecipes);
++	console.log("📌 Raw Public Recipes:", publicRecipes);
++
++	// ✅ Fix: Ensure correct extraction
++	privateRecipes = privateRecipes || [];
++	publicRecipes = publicRecipes || [];
+ 
+-    // ✅ Extract HATEOAS `_embedded.recipeList`
+-    privateRecipes = privateRecipes._embedded?.recipeList || [];
+-    publicRecipes = publicRecipes._embedded?.recipeList || [];
++	console.log("✅ Final Private Recipes:", privateRecipes);
++	console.log("✅ Final Public Recipes:", publicRecipes);
+ 
+-    console.log("✅ Private Recipes:", privateRecipes);
+-    console.log("✅ Public Recipes:", publicRecipes);
++	loadRecipeDropdown(privateRecipes, publicRecipes);
+ 
+-    // ✅ Load Recipes into Dropdown
+-    loadRecipeDropdown(privateRecipes, publicRecipes);
+ 
+     // ✅ Load Tags into Scrollable Cards
+     loadTagCards(privateRecipes, publicRecipes);
+ }
+ 
+-// 🔒 Logout
++// 🔒 Logout Function
+ function handleLogout() {
+-    localStorage.removeItem("token");
+-    navigateTo("login");
++    console.log("🚪 Logging out...");
++    localStorage.removeItem("token"); // Remove authentication token
++    navigateTo("login"); // Redirect to login page
+ }
+ 
++// ✅ Load Tags into Scrollable Cards
+ async function loadTagCards(privateRecipes, publicRecipes) {
+     const tagContainer = document.getElementById("tag-card-container");
+     tagContainer.innerHTML = "";
+@@ -129,7 +89,6 @@ async function loadTagCards(privateRecipes, publicRecipes) {
+     [...privateRecipes, ...publicRecipes].forEach(recipe => {
+         if (recipe.tags) {
+             recipe.tags.forEach(tag => {
+-                // ✅ Fix: Ensure we're storing only tag names, not full objects
+                 if (typeof tag === "object" && tag.name) {
+                     allTags.add(tag.name);
+                 } else if (typeof tag === "string") {
+@@ -140,15 +99,15 @@ async function loadTagCards(privateRecipes, publicRecipes) {
+     });
+ 
+     const tagsArray = Array.from(allTags);
+-    console.log("📌 Processed Tags:", tagsArray); // ✅ Debugging
++    console.log("📌 Processed Tags:", tagsArray);
+ 
+     tagsArray.forEach(tagName => {
+         const tagCard = document.createElement("div");
+         tagCard.className = "tag-card";
+-        tagCard.textContent = tagName; // ✅ Fix: Ensure only the name is displayed
++        tagCard.textContent = tagName;
+         tagCard.addEventListener("click", () => {
+             console.log(`🖱️ Clicked on Tag: ${tagName}`);
+-            openTagPopup(tagName);
++            openTagSection(tagName);
+         });
+         tagContainer.appendChild(tagCard);
+     });
+@@ -162,7 +121,8 @@ async function loadTagCards(privateRecipes, publicRecipes) {
+     });
+ }
+ 
+-async function openTagPopup(tag) {
++// ✅ Open Tag-Based Recipe Section (No Popup)
++async function openTagSection(tag) {
+     if (typeof tag !== "string") {
+         console.error("❌ Invalid tag passed:", tag);
+         return;
+@@ -189,20 +149,24 @@ async function openTagPopup(tag) {
+             return;
+         }
+ 
+-        // ✅ Display Recipes in a Simple List
++        // ✅ Display Recipes in a Simple List (Now Includes Ingredients)
+         recipes.forEach(recipe => {
+             const item = document.createElement("div");
+-            item.className = "recipe-tag-item";
+-            item.innerHTML = `<strong>${recipe.name}</strong><br><small>${recipe.description || "No description"}</small>`;
++            item.className = "recipe-tag-item card p-2 mb-2";
++            item.innerHTML = `
++                <strong>${recipe.name}</strong><br>
++                <small>${recipe.description || "No description"}</small>
++                <hr>
++                <p><strong>Ingredients:</strong></p>
++                <ul>
++                    ${recipe.ingredients.map(ing => `<li>${ing.name} - ${ing.cookingTime} mins (${ing.cookingMethod})</li>`).join("")}
++                </ul>
++            `;
+             recipeList.appendChild(item);
+         });
+ 
+     } catch (error) {
+-        console.error("❌ Error fetching recipes by tag:", err)}
+-		document.getElementById("close-tag-section").addEventListener("click", () => {
+-		    document.getElementById("tag-recipe-section").style.display = "none";
+-		});
++        console.error("❌ Error fetching recipes by tag:", error);
++        recipeList.innerHTML = `<p class="text-danger">❌ Failed to load recipes.</p>`;
++    }
+ }
+-
+-
+-
+diff --git a/Individual_proj/src/main/resources/static/js/recipeDropdown.js b/Individual_proj/src/main/resources/static/js/recipeDropdown.js
+index c378c41..6e53a71 100644
+--- a/Individual_proj/src/main/resources/static/js/recipeDropdown.js
++++ b/Individual_proj/src/main/resources/static/js/recipeDropdown.js
+@@ -4,27 +4,25 @@ import { renderRecipeChart } from "./recipeChart.js";
+  * Populates the recipe dropdown with private and public recipes.
+  */
+ export function loadRecipeDropdown(privateRecipes, publicRecipes) {
+-    const dropdown = document.getElementById("recipe-dropdown");
++    console.log("📥 Received Private Recipes:", privateRecipes);
++    console.log("📥 Received Public Recipes:", publicRecipes);
+ 
++    const dropdown = document.getElementById("recipe-dropdown");
+     if (!dropdown) {
+         console.error("❌ ERROR: Recipe dropdown not found.");
+         return;
+     }
+ 
+-    console.log("📥 Private Recipes:", privateRecipes);
+-    console.log("📥 Public Recipes:", publicRecipes);
+-
+     dropdown.innerHTML = `<option value="">-- Select a Recipe --</option>`; // Reset dropdown
+ 
+-    // 1️⃣ Private Recipes
+-    if (privateRecipes && privateRecipes.length > 0) {
++    if (privateRecipes.length > 0) {
+         console.log("✅ Adding Private Recipes to Dropdown...");
+         const privateGroup = document.createElement("optgroup");
+         privateGroup.label = "Your Recipes";
+         privateRecipes.forEach(recipe => {
+             console.log(`🔹 Adding Private Recipe: ${recipe.name}`);
+             const option = document.createElement("option");
+-            option.value = `private-${recipe.id}`;
++            option.value = `private-${recipe.name}`;
+             option.textContent = recipe.name;
+             privateGroup.appendChild(option);
+         });
+@@ -33,15 +31,14 @@ export function loadRecipeDropdown(privateRecipes, publicRecipes) {
+         console.warn("⚠️ No Private Recipes Found.");
+     }
+ 
+-    // 2️⃣ Public Recipes
+-    if (publicRecipes && publicRecipes.length > 0) {
++    if (publicRecipes.length > 0) {
+         console.log("✅ Adding Public Recipes to Dropdown...");
+         const publicGroup = document.createElement("optgroup");
+         publicGroup.label = "Public Recipes";
+         publicRecipes.forEach(recipe => {
+             console.log(`🔹 Adding Public Recipe: ${recipe.name}`);
+             const option = document.createElement("option");
+-            option.value = `public-${recipe.id}`;
++            option.value = `public-${recipe.name}`;
+             option.textContent = recipe.name;
+             publicGroup.appendChild(option);
+         });
+@@ -49,11 +46,9 @@ export function loadRecipeDropdown(privateRecipes, publicRecipes) {
+     } else {
+         console.warn("⚠️ No Public Recipes Found.");
+     }
+-
+-    // ✅ Handle selection event
+-    dropdown.addEventListener("change", () => displaySelectedRecipe(privateRecipes, publicRecipes));
+ }
+ 
++
+ /**
+  * Displays the selected recipe details and renders its chart.
+  */
+diff --git a/Individual_proj/src/main/resources/static/js/recipes.js b/Individual_proj/src/main/resources/static/js/recipes.js
+index d691593..e8b7370 100644
+--- a/Individual_proj/src/main/resources/static/js/recipes.js
++++ b/Individual_proj/src/main/resources/static/js/recipes.js
+@@ -5,8 +5,8 @@ async function loadRecipesPage() {
+     const recipes = await fetchRecipes();
+     
+     const recipeList = document.getElementById("recipe-list");
+-    if (recipes._embedded && recipes._embedded.recipes) {
+-        recipes._embedded.recipes.forEach(recipe => {
++	if (recipes._embedded && recipes._embedded.recipeDtoList) {
++	    recipes._embedded.recipeDtoList.forEach(recipe => {
+             const li = document.createElement("li");
+             li.className = "list-group-item";
+             li.textContent = recipe.name;
+diff --git a/Individual_proj/src/main/resources/static/js/spa.js b/Individual_proj/src/main/resources/static/js/spa.js
+index 9d43166..4cfbb1c 100644
+--- a/Individual_proj/src/main/resources/static/js/spa.js
++++ b/Individual_proj/src/main/resources/static/js/spa.js
+@@ -4,17 +4,24 @@ import { loadLoginPage, loadRegisterPage } from "./auth.js";
+ import { loadDashboard } from "./dashboard.js";
+ 
+ export function navigateTo(page) {
++    const logoutBtn = document.getElementById("logout-btn");
++
+     if (page === "login") {
+         loadLoginPage();
++        logoutBtn.style.display = "none"; // Hide logout on login
+     } else if (page === "register") {
+         loadRegisterPage();
++        logoutBtn.style.display = "none"; // Hide logout on register
+     } else if (localStorage.getItem("token")) {
+         loadDashboard();
++        logoutBtn.style.display = "block"; // Show logout when logged in
+     } else {
+         loadLoginPage();
++        logoutBtn.style.display = "none"; // Default state
+     }
+ }
+ 
++
+ document.addEventListener("DOMContentLoaded", () => {
+     const loginBtn = document.getElementById("login-btn");
+     const registerBtn = document.getElementById("register-btn");
