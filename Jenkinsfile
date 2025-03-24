@@ -35,13 +35,14 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('Individual_proj') {
-                    sh '''
-                        mvn clean verify sonar:sonar \
-                        -Dsonar.projectKey=CookingTime \
-                        -Dsonar.projectName="CookingTime" \
-                        -Dsonar.host.url=http://sonarqube:9000 \
-                        -Dsonar.token=${SONAR_TOKEN}
-                    '''
+                 sh '''
+                    mvn clean verify sonar:sonar \
+                    -Dsonar.projectKey=CookingTime \
+                    -Dsonar.projectName="CookingTime" \
+                    -Dsonar.host.url=http://host.docker.internal:9000 \
+                    -Dsonar.token=${SONAR_TOKEN}
+                '''
+
                 }
             }
         }
