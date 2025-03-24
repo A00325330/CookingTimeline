@@ -34,14 +34,15 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            steps {
-                dir('Individual_proj') {
-                    withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                        sh "mvn sonar:sonar -Dsonar.projectKey=CookingTime -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.login=${SONAR_TOKEN}"
-                    }
-                }
+    steps {
+        dir('Individual_proj') {
+            withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+                sh "mvn sonar:sonar -Dsonar.projectKey=CookingTime -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.login=${SONAR_TOKEN}"
             }
         }
+    }
+}
+
 
         stage('Docker Build') {
             steps {
