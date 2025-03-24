@@ -6,7 +6,6 @@ pipeline {
     }
 
     environment {
-        SONARQUBE_ENV = 'My SonarQube Server'
         SONAR_TOKEN = credentials('sonar-token')
     }
 
@@ -36,9 +35,13 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('Individual_proj') {
-                    withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                        sh "mvn sonar:sonar -Dsonar.projectKey=CookingTime -Dsonar.host.url=http://localhost:9000 -Dsonar.login=${SONAR_TOKEN}"
-                    }
+                    sh '''
+                        mvn clean verify sonar:sonar \
+                        -Dsonar.projectKey=CookingTime \
+                        -Dsonar.projectName="CookingTime" \
+                        -Dsonar.host.url=http://localhost:9000 \
+                        -Dsonar.token=${SONAR_TOKEN}
+                    '''
                 }
             }
         }
