@@ -1,8 +1,13 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'maven:3.9.4-eclipse-temurin-17'
+        }
+    }
 
     environment {
-        SONARQUBE_ENV = 'My SonarQube Server' // You’ll configure this in Jenkins later
+        SONARQUBE_ENV = 'My SonarQube Server'
+        SONAR_TOKEN = credentials('sonar-token') // Make sure this matches your Jenkins credentials ID
     }
 
     stages {
@@ -14,27 +19,33 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean install -DskipTests'
+                dir('Individual_proj') {
+                    sh 'mvn clean install -DskipTests'
+                }
             }
         }
 
         stage('Test') {
             steps {
-                sh 'mvn test'
+                dir('Individual_proj') {
+                    sh 'mvn test'
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                    sh 'mvn sonar:sonar'
+                dir('Individual_proj') {
+                    withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+                        sh "mvn sonar:sonar -Dsonar.projectKey=CookingTime -Dsonar.host.url=http://localhost:9000 -Dsonar.login=${SONAR_TOKEN}"
+                    }
                 }
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t cooking-timeline:latest .'
+                sh 'docker build -t cooking-timeline:latest ./Individual_proj'
             }
         }
     }
