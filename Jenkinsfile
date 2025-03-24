@@ -7,6 +7,7 @@ pipeline {
 
     environment {
         SONARQUBE_ENV = 'My SonarQube Server'
+        SONAR_TOKEN = credentials('sonar-token')
     }
 
     stages {
@@ -36,7 +37,7 @@ pipeline {
             steps {
                 dir('Individual_proj') {
                     withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                        sh 'mvn sonar:sonar'
+                        sh "mvn sonar:sonar -Dsonar.projectKey=CookingTime -Dsonar.host.url=http://localhost:9000 -Dsonar.login=${SONAR_TOKEN}"
                     }
                 }
             }
