@@ -2,12 +2,11 @@ pipeline {
     agent {
         docker {
             image 'maven:3.9.4-eclipse-temurin-17'
-            args '-v /root/.m2:/root/.m2' // Optional: cache Maven dependencies
         }
     }
 
     environment {
-        SONARQUBE_ENV = 'My SonarQube Server' // You’ll configure this in Jenkins later
+        SONARQUBE_ENV = 'My SonarQube Server'
     }
 
     stages {
@@ -19,27 +18,33 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean install -DskipTests'
+                dir('Individual_proj') {
+                    sh 'mvn clean install -DskipTests'
+                }
             }
         }
 
         stage('Test') {
             steps {
-                sh 'mvn test'
+                dir('Individual_proj') {
+                    sh 'mvn test'
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                    sh 'mvn sonar:sonar'
+                dir('Individual_proj') {
+                    withSonarQubeEnv("${env.SONARQUBE_ENV}") {
+                        sh 'mvn sonar:sonar'
+                    }
                 }
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh 'docker build -t cooking-timeline:latest .'
+                sh 'docker build -t cooking-timeline:latest ./Individual_proj'
             }
         }
     }
