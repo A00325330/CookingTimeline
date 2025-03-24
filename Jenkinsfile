@@ -37,7 +37,7 @@ pipeline {
     steps {
         dir('Individual_proj') {
             withSonarQubeEnv("${env.SONARQUBE_ENV}") {
-                sh "mvn sonar:sonar -Dsonar.projectKey=CookingTime -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.login=${SONAR_TOKEN}"
+                sh "mvn sonar:sonar -Dsonar.projectKey=CookingTime -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login=${SONAR_TOKEN}"
             }
         }
     }
