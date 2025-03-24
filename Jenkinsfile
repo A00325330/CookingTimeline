@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        SONAR_TOKEN = credentials('sonar-token')
+        SONAR_TOKEN = credentials('sonar-token') // Jenkins credential ID for your SonarQube token
     }
 
     stages {
@@ -33,19 +33,18 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-    steps {
-        dir('Individual_proj') {
-            sh '''
-                mvn clean verify sonar:sonar \
-                -Dsonar.projectKey=CookingTime \
-                -Dsonar.projectName="CookingTime" \
-                -Dsonar.host.url=http://sonarqube:9000 \
-                -Dsonar.token=${SONAR_TOKEN}
-            '''
+            steps {
+                dir('Individual_proj') {
+                    sh '''
+                        mvn clean verify sonar:sonar \
+                        -Dsonar.projectKey=CookingTime \
+                        -Dsonar.projectName="CookingTime" \
+                        -Dsonar.host.url=http://sonarqube:9000 \
+                        -Dsonar.token=${SONAR_TOKEN}
+                    '''
+                }
+            }
         }
-    }
-}
-
 
         stage('Docker Build') {
             steps {
