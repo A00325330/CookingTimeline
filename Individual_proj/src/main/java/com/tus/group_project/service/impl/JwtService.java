@@ -25,7 +25,7 @@ public class JwtService implements IJwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60; // 1 hour
+    private static final long EXPIRATION_TIME = (1000 * 60 * 60); // 1 hour
 
     /**
      * Generates a JWT Token for a User with Role.

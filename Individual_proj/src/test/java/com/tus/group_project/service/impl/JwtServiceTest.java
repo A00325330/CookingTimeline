@@ -1,6 +1,5 @@
 package com.tus.group_project.service.impl;
 
-import com.tus.group_project.service.IJwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.SignatureAlgorithm;
 

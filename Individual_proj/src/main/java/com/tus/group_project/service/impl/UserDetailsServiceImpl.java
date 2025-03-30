@@ -1,7 +1,6 @@
 package com.tus.group_project.service.impl;
 
 import com.tus.group_project.dao.UserRepository;
-import com.tus.group_project.model.Role;
 import com.tus.group_project.model.User;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
