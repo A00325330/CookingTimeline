@@ -47,10 +47,12 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
+              stage('Docker Build') {
+            agent any // run on host (where Docker is installed)
             steps {
                 sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
             }
         }
+
     }
 }
