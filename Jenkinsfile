@@ -6,7 +6,6 @@ pipeline {
     }
 
     environment {
-
         SONARQUBE_ENV = 'My SonarQube Server'
         SONAR_TOKEN = credentials('sonar-token') // Make sure this matches your Jenkins credentials ID
     }
@@ -35,7 +34,6 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-
             steps {
                 dir('Individual_proj') {
                     sh '''
@@ -46,17 +44,13 @@ pipeline {
                         -Dsonar.token=${SONAR_TOKEN}
                     '''
                 }
+            }
+        }
 
+        stage('Docker Build') {
+            steps {
+                sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
             }
         }
     }
 }
-
-
-       stage('Docker Build') {
-    steps {
-        sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
-    }
-}
-
-   
