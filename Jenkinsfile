@@ -1,13 +1,8 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.4-eclipse-temurin-17'
-        }
-    }
+    agent any
 
     environment {
-        SONARQUBE_ENV = 'My SonarQube Server'
-        SONAR_TOKEN = credentials('sonar-token') // Make sure this matches your Jenkins credentials ID
+        SONAR_TOKEN = credentials('sonar-token') // Add this in Jenkins -> Manage Credentials
     }
 
     stages {
@@ -47,13 +42,11 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
-            // run this stage on the built-in node with Docker
-            agent { label 'built-in' }
+       stage('Docker Build') {
+    steps {
+        sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
+    }
+}
 
-            steps {
-                sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
-            }
-        }
     }
 }
