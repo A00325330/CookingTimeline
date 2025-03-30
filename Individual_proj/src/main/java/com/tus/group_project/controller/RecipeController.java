@@ -23,178 +23,179 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 @RequestMapping("/api/recipes")
 public class RecipeController {
 
-    private final IRecipeService recipeService;
-    private final UserRepository userRepository;
-    private final TagRepository tagRepository;
+	private final IRecipeService recipeService;
+	private final UserRepository userRepository;
+	private final TagRepository tagRepository;
 
-    public RecipeController(IRecipeService recipeService, UserRepository userRepository, TagRepository tagRepository) {
-        this.recipeService = recipeService;
-        this.userRepository = userRepository;
-        this.tagRepository = tagRepository;
-    }
-    @GetMapping("/by-tag/{tagName}")
-    public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getRecipesByTag(@PathVariable String tagName) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	public RecipeController(IRecipeService recipeService, UserRepository userRepository, TagRepository tagRepository) {
+		this.recipeService = recipeService;
+		this.userRepository = userRepository;
+		this.tagRepository = tagRepository;
+	}
 
-        final User user; // Declare as final
+	@GetMapping("/by-tag/{tagName}")
+	public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getRecipesByTag(@PathVariable String tagName) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
-            user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
-        } else {
-            user = null; // Ensure it's explicitly assigned
-        }
+		final User user; // Declare as final
 
-        List<Recipe> recipes = recipeService.getRecipesByTag(tagName, user);
+		if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
+			user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+		} else {
+			user = null; // Ensure it's explicitly assigned
+		}
 
-        if (recipes.isEmpty()) {
-            return ResponseEntity.ok(CollectionModel.of(Collections.emptyList(),
-                linkTo(methodOn(RecipeController.class).getRecipesByTag(tagName)).withSelfRel()));
-        }
+		List<Recipe> recipes = recipeService.getRecipesByTag(tagName, user);
 
-        List<EntityModel<RecipeDto>> recipeModels = recipes.stream()
-            .map(recipe -> buildRecipeModel(recipe, user)) // ✅ Now user is effectively final
-            .collect(Collectors.toList());
+		if (recipes.isEmpty()) {
+			return ResponseEntity.ok(CollectionModel.of(Collections.emptyList(),
+					linkTo(methodOn(RecipeController.class).getRecipesByTag(tagName)).withSelfRel()));
+		}
 
-        return ResponseEntity.ok(CollectionModel.of(recipeModels,
-            linkTo(methodOn(RecipeController.class).getRecipesByTag(tagName)).withSelfRel()));
-    }
+		List<EntityModel<RecipeDto>> recipeModels = recipes.stream().map(recipe -> buildRecipeModel(recipe, user)) // ✅
+																													// Now
+																													// user
+																													// is
+																													// effectively
+																													// final
+				.toList();
 
+		return ResponseEntity.ok(CollectionModel.of(recipeModels,
+				linkTo(methodOn(RecipeController.class).getRecipesByTag(tagName)).withSelfRel()));
+	}
 
-    @PostMapping
-    public ResponseEntity<EntityModel<RecipeDto>> createRecipe(@RequestBody RecipeDto recipeDto) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+	@PostMapping
+	public ResponseEntity<EntityModel<RecipeDto>> createRecipe(@RequestBody RecipeDto recipeDto) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+		Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
+		if (optionalUser.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
-        User user = optionalUser.get();
+		User user = optionalUser.get();
 
-        // Correct instance method usage here:
-        Recipe newRecipe = recipeDto.toEntity(user, tagRepository);
-        Recipe savedRecipe = recipeService.createRecipe(newRecipe, user);
+		// Correct instance method usage here:
+		Recipe newRecipe = recipeDto.toEntity(user, tagRepository);
+		Recipe savedRecipe = recipeService.createRecipe(newRecipe, user);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(buildRecipeModel(savedRecipe, user));
-    }
+		return ResponseEntity.status(HttpStatus.CREATED).body(buildRecipeModel(savedRecipe, user));
+	}
 
+	@GetMapping("/mine")
+	public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getMyRecipes() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+		User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
 
-    @GetMapping("/mine")
-    public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getMyRecipes() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+		List<EntityModel<RecipeDto>> recipeModels = recipeService.getUserRecipes(user).stream()
+				.map(r -> buildRecipeModel(r, user)).toList();
 
-        List<EntityModel<RecipeDto>> recipeModels = recipeService.getUserRecipes(user).stream()
-            .map(r -> buildRecipeModel(r, user)).collect(Collectors.toList());
+		return ResponseEntity.ok(CollectionModel.of(recipeModels,
+				linkTo(methodOn(RecipeController.class).getMyRecipes()).withSelfRel()));
+	}
 
-        return ResponseEntity.ok(CollectionModel.of(recipeModels,
-            linkTo(methodOn(RecipeController.class).getMyRecipes()).withSelfRel()));
-    }
+	@GetMapping("/public")
+	public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getPublicRecipes() {
+		List<EntityModel<RecipeDto>> recipes = recipeService.getPublicRecipes().stream()
+				.map(r -> buildRecipeModel(r, null)).toList();
 
-    @GetMapping("/public")
-    public ResponseEntity<CollectionModel<EntityModel<RecipeDto>>> getPublicRecipes() {
-        List<EntityModel<RecipeDto>> recipes = recipeService.getPublicRecipes().stream()
-            .map(r -> buildRecipeModel(r, null)).collect(Collectors.toList());
+		return ResponseEntity.ok(
+				CollectionModel.of(recipes, linkTo(methodOn(RecipeController.class).getPublicRecipes()).withSelfRel()));
+	}
 
-        return ResponseEntity.ok(CollectionModel.of(recipes,
-            linkTo(methodOn(RecipeController.class).getPublicRecipes()).withSelfRel()));
-    }
+	@GetMapping("/{id}")
+	public ResponseEntity<EntityModel<RecipeDto>> getRecipeById(@PathVariable Long id) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+		User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
 
-    @GetMapping("/{id}")
-    public ResponseEntity<EntityModel<RecipeDto>> getRecipeById(@PathVariable Long id) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
+		Recipe recipe = recipeService.getRecipeById(id).orElseThrow();
 
-        Recipe recipe = recipeService.getRecipeById(id).orElseThrow();
+		if (recipe.getVisibility() == Visibility.PUBLIC || recipe.getUser().equals(user)) {
+			return ResponseEntity.ok(buildRecipeModel(recipe, user));
+		}
 
-        if (recipe.getVisibility() == Visibility.PUBLIC || recipe.getUser().equals(user)) {
-            return ResponseEntity.ok(buildRecipeModel(recipe, user));
-        }
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+	}
 
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-    }
+	@PutMapping("/{id}")
+	public ResponseEntity<EntityModel<RecipeDto>> updateRecipe(@PathVariable Long id,
+			@RequestBody RecipeDto recipeDto) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
-    @PutMapping("/{id}")
-    public ResponseEntity<EntityModel<RecipeDto>> updateRecipe(@PathVariable Long id, @RequestBody RecipeDto recipeDto) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+		Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
+		if (optionalUser.isEmpty()) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        Optional<User> optionalUser = userRepository.findByEmail(userDetails.getUsername());
-        if (optionalUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+		User user = optionalUser.get();
+		Optional<Recipe> existingRecipeOpt = recipeService.getRecipeById(id);
+		if (existingRecipeOpt.isEmpty() || !existingRecipeOpt.get().getUser().equals(user)) {
+			return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+		}
 
-        User user = optionalUser.get();
-        Optional<Recipe> existingRecipeOpt = recipeService.getRecipeById(id);
-        if (existingRecipeOpt.isEmpty() || !existingRecipeOpt.get().getUser().equals(user)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+		Recipe existingRecipe = existingRecipeOpt.get();
+		recipeDto.updateEntity(existingRecipe, tagRepository);
+		Recipe updatedRecipe = recipeService.updateRecipe(id, existingRecipe, user);
 
-        Recipe existingRecipe = existingRecipeOpt.get();
-        recipeDto.updateEntity(existingRecipe, tagRepository);
-        Recipe updatedRecipe = recipeService.updateRecipe(id, existingRecipe, user);
+		return ResponseEntity.ok(buildRecipeModel(updatedRecipe, user));
+	}
 
-        return ResponseEntity.ok(buildRecipeModel(updatedRecipe, user));
-    }
+	@DeleteMapping("/{id}")
+	public ResponseEntity<RepresentationModel<?>> deleteRecipe(@PathVariable Long id) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<RepresentationModel<?>> deleteRecipe(@PathVariable Long id) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth == null || !(auth.getPrincipal() instanceof UserDetails)) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+		}
 
-        if (auth == null || !(auth.getPrincipal() instanceof UserDetails)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+		UserDetails userDetails = (UserDetails) auth.getPrincipal();
+		User user = userRepository.findByEmail(userDetails.getUsername())
+				.orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        UserDetails userDetails = (UserDetails) auth.getPrincipal();
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+		try {
+			recipeService.deleteRecipe(id, user);
+		} catch (ResponseStatusException ex) {
+			return ResponseEntity.status(ex.getStatusCode()).build();
+		}
 
-        try {
-            recipeService.deleteRecipe(id, user);
-        } catch (ResponseStatusException ex) {
-            return ResponseEntity.status(ex.getStatusCode()).build();
-        }
+		RepresentationModel<?> model = new RepresentationModel<>();
+		model.add(linkTo(methodOn(RecipeController.class).getMyRecipes()).withRel("mine"));
+		model.add(linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes"));
+		model.add(linkTo(methodOn(RecipeController.class).createRecipe(null)).withRel("createRecipe"));
 
-        RepresentationModel<?> model = new RepresentationModel<>();
-        model.add(linkTo(methodOn(RecipeController.class).getMyRecipes()).withRel("mine"));
-        model.add(linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes"));
-        model.add(linkTo(methodOn(RecipeController.class).createRecipe(null)).withRel("createRecipe"));
+		return ResponseEntity.ok(model);
+	}
 
-        return ResponseEntity.ok(model);
-    }
+	private EntityModel<RecipeDto> buildRecipeModel(Recipe recipe, User currentUser) {
+		RecipeDto dto = RecipeDto.fromEntity(recipe);
+		EntityModel<RecipeDto> recipeModel = EntityModel.of(dto,
+				linkTo(methodOn(RecipeController.class).getRecipeById(recipe.getId())).withSelfRel(),
+				linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes"));
 
+		if (recipe.getUser() != null) {
+			recipeModel.add(
+					linkTo(methodOn(UserController.class).getUserById(recipe.getUser().getId())).withRel("author"));
+		}
 
+		if (currentUser != null && recipe.getUser().equals(currentUser)) {
+			recipeModel.add(linkTo(methodOn(RecipeController.class).getMyRecipes()).withRel("mine"));
 
+			recipeService.getUserRecipes(currentUser)
+					.forEach(userRecipe -> recipeModel
+							.add(linkTo(methodOn(RecipeController.class).getRecipeById(userRecipe.getId()))
+									.withRel("recipe_" + userRecipe.getId())));
+		}
 
-    private EntityModel<RecipeDto> buildRecipeModel(Recipe recipe, User currentUser) {
-        RecipeDto dto = RecipeDto.fromEntity(recipe);
-        EntityModel<RecipeDto> recipeModel = EntityModel.of(dto,
-            linkTo(methodOn(RecipeController.class).getRecipeById(recipe.getId())).withSelfRel(),
-            linkTo(methodOn(RecipeController.class).getPublicRecipes()).withRel("publicRecipes"));
-
-        if (recipe.getUser() != null) {
-            recipeModel.add(linkTo(methodOn(UserController.class)
-                .getUserById(recipe.getUser().getId())).withRel("author"));
-        }
-
-        if (currentUser != null && recipe.getUser().equals(currentUser)) {
-            recipeModel.add(linkTo(methodOn(RecipeController.class)
-                .getMyRecipes()).withRel("mine"));
-
-            recipeService.getUserRecipes(currentUser).forEach(userRecipe ->
-                recipeModel.add(linkTo(methodOn(RecipeController.class)
-                    .getRecipeById(userRecipe.getId())).withRel("recipe_" + userRecipe.getId())));
-        }
-
-        return recipeModel;
-    }
+		return recipeModel;
+	}
 }

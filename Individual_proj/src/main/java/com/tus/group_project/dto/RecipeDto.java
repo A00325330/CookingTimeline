@@ -61,7 +61,7 @@ public class RecipeDto {
                     newTag.setName(tagName);
                     return tagRepository.save(newTag);
                 }))
-            .collect(Collectors.toList()) : new ArrayList<>();
+            .toList() : new ArrayList<>();
 
         recipe.setTags(tagEntities);
 
@@ -74,7 +74,7 @@ public class RecipeDto {
                 ingredient.setCookingMethod(ingredientDto.getCookingMethod());
                 return ingredient;
             })
-            .collect(Collectors.toList()) : new ArrayList<>();
+            .toList() : new ArrayList<>();
 
         recipe.setIngredients(ingredientEntities);
 
@@ -103,7 +103,7 @@ public class RecipeDto {
                     newTag.setName(tagName);
                     return tagRepository.save(newTag);
                 }))
-            .collect(Collectors.toList()) : new ArrayList<>();
+            .toList() : new ArrayList<>();
 
         recipe.setTags(tagEntities);
 
@@ -119,7 +119,7 @@ public class RecipeDto {
                     ingredient.setCookingMethod(ingredientDto.getCookingMethod());
                     return ingredient;
                 })
-                .collect(Collectors.toList());
+                .toList();
 
             recipe.getIngredients().addAll(ingredientEntities);
 

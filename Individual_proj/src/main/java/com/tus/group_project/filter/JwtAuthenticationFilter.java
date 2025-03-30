@@ -55,8 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             email = claims.getSubject();
             role = claims.get("role", String.class);
 
-            System.out.println("🔍 Extracted Email: " + email);
-            System.out.println("🔍 Extracted Role: " + role);
+         
         } catch (ExpiredJwtException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token expired");
@@ -81,9 +80,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        System.out.println("🔍 Extracted Email: " + email);
-        System.out.println("🔍 Extracted Role: " + role);
-        System.out.println("🔍 Current Authentication: " + SecurityContextHolder.getContext().getAuthentication());
+     
 
         filterChain.doFilter(request, response);
     }

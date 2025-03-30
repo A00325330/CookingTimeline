@@ -36,7 +36,6 @@ public class UserController {
     private final PasswordEncoder passwordEncoder;
     private final IUserService userService;
 
-    private static final String USER_NOT_FOUND_ERROR = "User with this email does not exist.";
     private static final String USER_UPDATED_MESSAGE = "User successfully updated.";
     private static final String USER_DELETED_MESSAGE = "User successfully deleted.";
 
