@@ -1,6 +1,5 @@
 // auth.js - Handles login & registration page rendering
 
-import { navigateTo } from "./spa.js";
 import { loginUser, registerUser } from "./api.js";
 
 export function loadLoginPage() {

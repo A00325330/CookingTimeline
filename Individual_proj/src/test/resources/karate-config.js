@@ -1,8 +1,8 @@
 function fn() {
-    var env = karate.env; // get system property 'karate.env'
+    let env = karate.env; // get system property 'karate.env'
     
     // Default configuration
-    var config = {
+    let config = {
         baseUrl: 'http://localhost:8081',
         logFilePath: 'logs/skipped_rows.log',
         adminUser: { email: 'admin@example.com', password: 'Admin123!' },

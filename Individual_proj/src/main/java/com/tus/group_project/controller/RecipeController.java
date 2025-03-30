@@ -38,8 +38,7 @@ public class RecipeController {
 
         final User user; // Declare as final
 
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails userDetails) {
             user = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
         } else {
             user = null; // Ensure it's explicitly assigned

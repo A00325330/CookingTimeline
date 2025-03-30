@@ -161,12 +161,6 @@ public class AuthController {
                 .withRel("login")
         );
 
-        // Optionally, you could link to recipes as well
-        // entityModel.add(
-        //    linkTo(methodOn(RecipeController.class).getPublicRecipes())
-        //        .withRel("recipes")
-        // );
-
         return ResponseEntity.ok(entityModel);
     }
 }

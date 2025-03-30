@@ -1,4 +1,4 @@
-import { saveRecipe, fetchTags } from "./api.js";
+import { saveRecipe } from "./api.js";
 import { loadDashboard } from "./dashboard.js";
 import { isAdmin } from "./adminCheck.js";  
 

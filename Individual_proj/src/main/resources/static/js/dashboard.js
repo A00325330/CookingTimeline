@@ -1,6 +1,5 @@
 import { fetchRecipes, fetchPublicRecipes, fetchRecipesByTag } from "./api.js";
 import { showAddRecipeModal } from "./recipeForm.js";
-import { renderRecipeChart } from "./recipeChart.js";
 import { loadRecipeDropdown } from "./recipeDropdown.js";
 import { navigateTo } from "./spa.js";
 
