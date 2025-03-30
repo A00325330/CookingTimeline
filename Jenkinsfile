@@ -47,12 +47,15 @@ pipeline {
             }
         }
 
-         stage('Docker Build') {
-    agent { label 'docker' } // or just run it on the Jenkins host if you know it works there
+ stage('Docker Build') {
+    agent none
     steps {
-        sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
+        node {
+            sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
+        }
     }
 }
+
 
 
     }
