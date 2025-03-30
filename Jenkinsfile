@@ -1,14 +1,8 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.4-eclipse-temurin-17'
-        }
-    }
+    agent any
 
     environment {
-
-        SONARQUBE_ENV = 'My SonarQube Server'
-        SONAR_TOKEN = credentials('sonar-token') // Make sure this matches your Jenkins credentials ID
+        SONAR_TOKEN = credentials('sonar-token') // Add this in Jenkins -> Manage Credentials
     }
 
     stages {
@@ -35,7 +29,6 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-
             steps {
                 dir('Individual_proj') {
                     sh '''
@@ -46,12 +39,8 @@ pipeline {
                         -Dsonar.token=${SONAR_TOKEN}
                     '''
                 }
-
             }
         }
-    }
-}
-
 
         stage('Docker Build') {
             steps {
