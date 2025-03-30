@@ -47,16 +47,13 @@ pipeline {
             }
         }
 
- stage('Docker Build') {
-    agent none
-    steps {
-        node {
-            sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
+        stage('Docker Build') {
+            // run this stage on the built-in node with Docker
+            agent { label 'built-in' }
+
+            steps {
+                sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
+            }
         }
-    }
-}
-
-
-
     }
 }
