@@ -42,10 +42,11 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
-            steps {
-                sh 'docker build -t cooking-timeline:latest ./Individual_proj'
-            }
-        }
+       stage('Docker Build') {
+    steps {
+        sh 'export DOCKER_BUILDKIT=0 && docker build -t cooking-timeline:latest ./Individual_proj'
+    }
+}
+
     }
 }
