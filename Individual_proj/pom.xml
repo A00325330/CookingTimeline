@@ -199,19 +199,23 @@
             </plugin>
 
             <!-- Run Unit & Integration Tests -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>unit-tests</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>test</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+          <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <executions>
+        <execution>
+            <id>unit-tests</id>
+            <phase>test</phase>
+            <goals>
+                <goal>test</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <argLine>-Dspring.profiles.active=test</argLine>
+    </configuration>
+</plugin>
+
 
             <!-- Run Selenium E2E Tests After Spring Boot Starts -->
             <plugin>
