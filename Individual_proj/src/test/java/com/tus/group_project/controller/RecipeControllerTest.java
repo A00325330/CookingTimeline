@@ -4,7 +4,6 @@ import com.tus.group_project.dao.TagRepository;
 import com.tus.group_project.dao.UserRepository;
 import com.tus.group_project.dto.RecipeDto;
 import com.tus.group_project.model.Recipe;
-import com.tus.group_project.model.User;
 import com.tus.group_project.service.IRecipeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
