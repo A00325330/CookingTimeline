@@ -23,7 +23,7 @@ pipeline {
         stage('Test') {
             steps {
                 dir('Individual_proj') {
-                    sh 'mvn test'
+                    sh 'mvn clean test -Dspring.profiles.active=test'
                 }
             }
         }
