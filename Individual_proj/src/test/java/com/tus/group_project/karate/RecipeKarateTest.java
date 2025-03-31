@@ -30,15 +30,4 @@ public class RecipeKarateTest {
 				"classpath:features/recipes/getRecipeById.feature",
 				"classpath:features/recipes/getPublicRecipes.feature").relativeTo(getClass());
 	}
-//    @Karate.Test
-//    Karate runRecipeTests() {
-//    	return Karate.run("classpath:features/recipes/getRecipeByTag.feature", 
-//    			"classpath:features/recipes/createRecipe.feature", 
-//    			"classpath:features/recipes/getMyRecipes.feature",
-//    			"classpath:features/recipes/getPublicRecipes.feature", 
-//    			"classpath:features/recipes/getRecipeById.feature",
-//    			"classpath:features/recipes/updateRecipe.feature", 
-//    			"classpath:features/recipes/deleteRecipe.feature")
-//    			.relativeTo(getClass());
-//    }
 }
