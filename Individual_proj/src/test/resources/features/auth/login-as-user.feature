@@ -1,7 +1,8 @@
 Feature: Reusable login for normal user
 
 Scenario: Authenticate and return token
-  * url 'http://localhost:8081/api/auth'
+  * def baseUrl = karate.properties['karate.baseUrl']
+  * url baseUrl + '/api/auth'
   * path 'login'
   * request { email: 'user@example.com', password: 'Admin123!' }
   * method post

@@ -7,26 +7,31 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("test")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AuthKarateTest {
+
+    @LocalServerPort
+    private int port;
 
     @Autowired
     private DatabaseManager databaseManager;
 
     @BeforeAll
     void setup() {
-    	databaseManager.clearDatabase();
+	    System.setProperty("karate.baseUrl", "http://localhost:" + port);
+        databaseManager.clearDatabase();
         databaseManager.executeSetupScripts();
     }
 
     @Karate.Test
     Karate runAuthTests() {
         return Karate.run("classpath:features/auth/login.feature", "classpath:features/auth/register.feature")
-                     .relativeTo(getClass());
+                .relativeTo(getClass());
     }
 
     @AfterAll

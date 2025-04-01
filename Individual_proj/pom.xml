@@ -200,7 +200,10 @@
                 <version>3.1.2</version>
                 <configuration>
                     <argLine>${jacoco.agent.argLine} -Dspring.profiles.active=test</argLine>
+                        <parallel>none</parallel>
+
                 </configuration>
+                
                 <executions>
                     <execution>
                         <id>unit-tests</id>

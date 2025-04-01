@@ -1,7 +1,8 @@
 Feature: Get recipe by ID
 
   Background:
-    * url 'http://localhost:8081/api'
+    * def baseUrl = karate.properties['karate.baseUrl']
+    * url baseUrl + '/api'
     * def login = call read('classpath:features/auth/login-as-user.feature')
     * def token = login.token
     * header Authorization = 'Bearer ' + token
@@ -12,7 +13,7 @@ Feature: Get recipe by ID
     Then status 200
     And match response.name == 'Classic Chicken Curry'
 
-  Scenario: Get a recipe that is forbidden
+  Scenario: Attempt to get a recipe the user doesn't own
     Given path 'recipes', 999
     When method get
     Then status 403

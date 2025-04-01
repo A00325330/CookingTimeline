@@ -1,7 +1,8 @@
 Feature: Create a recipe
 
   Scenario: Create and expose response
-    * url 'http://localhost:8081/api'
+    * def baseUrl = karate.properties['karate.baseUrl']
+    * url baseUrl + '/api'
     * def login = call read('classpath:features/auth/login-as-user.feature')
     * def token = login.token
     * header Authorization = 'Bearer ' + token

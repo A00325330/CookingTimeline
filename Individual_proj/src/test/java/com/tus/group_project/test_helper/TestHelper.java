@@ -9,14 +9,16 @@ import java.util.List;
 public class TestHelper {
     private WebDriver driver;
     private WebDriverWait wait;
+    private int port;
 
-    public TestHelper(WebDriver driver) {
+    public TestHelper(WebDriver driver, int port) {
         this.driver = driver;
+        this.port = port;
         this.wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
     public void login(String email, String password) {
-        driver.get("http://localhost:8081/index.html");
+        driver.get("http://localhost:" + port + "/index.html");
         wait.until(ExpectedConditions.elementToBeClickable(By.id("login-btn"))).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email"))).sendKeys(email);
         driver.findElement(By.id("login-password")).sendKeys(password);

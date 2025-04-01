@@ -1,15 +1,13 @@
 function fn() {
-    let env = karate.env; // get system property 'karate.env'
-    
-    // Default configuration
+    let env = karate.env || 'local';
+
     let config = {
-        baseUrl: 'http://localhost:8081',
+        baseUrl: 'http://localhost:8081', // default fallback
         logFilePath: 'logs/skipped_rows.log',
         adminUser: { email: 'admin@example.com', password: 'Admin123!' },
         testUser: { email: 'user@example.com', password: 'userpass' }
     };
 
-    // Environment-specific overrides
     if (env === 'dev') {
         config.baseUrl = 'http://dev.server.com';
     } else if (env === 'staging') {
@@ -20,5 +18,4 @@ function fn() {
 
     karate.log('Running tests in environment:', env);
     return config;
-	
 }
