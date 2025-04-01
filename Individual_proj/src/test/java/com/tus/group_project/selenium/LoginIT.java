@@ -91,7 +91,7 @@ class LoginIT {
         driver.findElement(By.id("add-tag-btn")).click();
 
         String[][] ingredients = {
-            {"Chicken", "20", "Cook"},
+            {"Chick", "20", "Cook"},
             {"Onion", "5", "Fry"},
             {"Spices", "3", "Mix"}
         };
