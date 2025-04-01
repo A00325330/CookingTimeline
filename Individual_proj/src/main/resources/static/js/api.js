@@ -1,6 +1,10 @@
 import { navigateTo } from "./spa.js";
 
-const API_BASE_URL = "http://localhost:8081/api";
+// src/main/resources/static/js/api.js
+const API_BASE_URL =
+  window.location.port === "8081"
+    ? "http://localhost:8081/api" // dev
+    : "/api";                     // prod/tests
 
 /**
  * Helper function to make API requests.
@@ -81,7 +85,7 @@ export async function fetchTags() {
     }
 
     try {
-        const response = await fetch("http://localhost:8081/api/tags", {
+		const response = await fetch("/api/tags", {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,  // 🔥 Include token
