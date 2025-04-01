@@ -6,66 +6,71 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 
+import java.time.Duration;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.awaitility.Awaitility.await;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @EnabledIfSystemProperty(named = "runSeleniumTests", matches = "true")
+class RegisterIT {
 
-public class RegisterIT {
-	@LocalServerPort
-	private int port; // ✅ this injects a random available port
-	private WebDriver driver;
-	private WebDriverWait wait;
+    @LocalServerPort
+    private int port;
 
-	@BeforeAll
-	void setupClass() {
-		WebDriverManager.chromedriver().setup();
-	}
+    private WebDriver driver;
+    private WebDriverWait wait;
 
-	@BeforeEach
-	void setupTest() {
-		ChromeOptions options = new ChromeOptions();
-		options.addArguments("--disable-gpu", "--no-sandbox", "--headless=new");
-		driver = new ChromeDriver(options);
-		wait = new WebDriverWait(driver, java.time.Duration.ofSeconds(10));
-	}
+    @BeforeAll
+    void setupClass() {
+        WebDriverManager.chromedriver().setup();
+    }
 
-	@AfterEach
-	void tearDown() {
-		if (driver != null) {
-			driver.quit();
-		}
-	}
+    @BeforeEach
+    void setupTest() {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--disable-gpu", "--no-sandbox", "--headless=new");
+        driver = new ChromeDriver(options);
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+    }
 
-	@Test
-	void testUserRegistrationFlow() {
-		driver.get("http://localhost:" + port + "/index.html");
+    @AfterEach
+    void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
 
-		// Click the "Register" nav button
-		WebElement registerNav = driver.findElement(By.id("register-btn"));
-		registerNav.click();
+    @Test
+    void testUserRegistrationFlow() {
+        driver.get("http://localhost:" + port + "/index.html");
 
-		// Fill in the registration form
-		String uniqueEmail = "aaron" + System.currentTimeMillis() + "@example.com";
-		driver.findElement(By.id("register-email")).sendKeys(uniqueEmail);
-		driver.findElement(By.id("register-password")).sendKeys("Admin123!");
+        driver.findElement(By.id("register-btn")).click();
 
-		// Click the form's Register button
-		driver.findElement(By.cssSelector("#register-form button[type='submit']")).click();
+        String uniqueEmail = "aaron" + System.currentTimeMillis() + "@example.com";
+        driver.findElement(By.id("register-email")).sendKeys(uniqueEmail);
+        driver.findElement(By.id("register-password")).sendKeys("Admin123!");
+        driver.findElement(By.cssSelector("#register-form button[type='submit']")).click();
 
-		// Wait and handle the JS alert
-		Alert alert = wait.until(ExpectedConditions.alertIsPresent());
-		String alertText = alert.getText();
-		assertTrue(alertText.toLowerCase().contains("registration successful"),
-				"Alert did not confirm success. Actual text: " + alertText);
-		alert.accept();
-	}
+        await().atMost(Duration.ofSeconds(5)).until(() -> {
+            try {
+                Alert alert = driver.switchTo().alert();
+                return alert.getText().toLowerCase().contains("registration successful");
+            } catch (NoAlertPresentException e) {
+                return false;
+            }
+        });
+
+        Alert alert = driver.switchTo().alert();
+        assertTrue(alert.getText().toLowerCase().contains("registration successful"),
+                "Alert did not confirm success. Actual text: " + alert.getText());
+        alert.accept();
+    }
 }
