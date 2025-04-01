@@ -37,7 +37,7 @@ class RegisterIT {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--disable-gpu", "--no-sandbox", "--headless=new");
         driver = new ChromeDriver(options);
-        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     }
 
     @AfterEach
