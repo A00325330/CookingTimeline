@@ -22,7 +22,7 @@ import java.util.List;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@EnabledIfSystemProperty(named = "runSeleniumTests", matches = "true")
+//@EnabledIfSystemProperty(named = "runSeleniumTests", matches = "true")
 
 public class LoginIT {
 	@LocalServerPort
