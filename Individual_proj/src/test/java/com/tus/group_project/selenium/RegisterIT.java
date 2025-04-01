@@ -26,7 +26,6 @@ class RegisterIT {
     private int port;
 
     private WebDriver driver;
-    private WebDriverWait wait;
 
     @BeforeAll
     void setupClass() {

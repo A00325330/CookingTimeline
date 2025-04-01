@@ -24,7 +24,7 @@ import static org.awaitility.Awaitility.await;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @EnabledIfSystemProperty(named = "runSeleniumTests", matches = "true")
-public class LoginIT {
+class LoginIT {
 
     @LocalServerPort
     private int port;
