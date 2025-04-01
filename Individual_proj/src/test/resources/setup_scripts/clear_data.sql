@@ -1,5 +1,10 @@
+SET REFERENTIAL_INTEGRITY FALSE;
+
 DELETE FROM recipe_steps;
 DELETE FROM recipe_ingredients;
+DELETE FROM recipe_tags;
 DELETE FROM recipes;
 DELETE FROM user_roles;
 DELETE FROM users;
+
+SET REFERENTIAL_INTEGRITY TRUE;

@@ -10,7 +10,7 @@ export function loadLoginPage() {
             <form id="login-form">
                 <input type="email" id="login-email" class="form-control mb-2" placeholder="Email" required />
                 <input type="password" id="login-password" class="form-control mb-2" placeholder="Password" required />
-                <button type="submit" class="btn btn-primary">Login</button>
+                <button type="submit" id="login-button"class="btn btn-primary">Login</button>
             </form>
         </div>
     `;
