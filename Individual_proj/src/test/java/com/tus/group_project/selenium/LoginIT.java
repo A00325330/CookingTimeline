@@ -74,7 +74,9 @@ class LoginIT {
             Alert alert = driver.switchTo().alert();
             System.out.println("Alert: " + alert.getText());
             alert.dismiss();
-        } catch (NoAlertPresentException ignored) {}
+        }catch (NoAlertPresentException e) {
+            System.out.println("No alert present to dismiss.");
+        }
 
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn"))).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
