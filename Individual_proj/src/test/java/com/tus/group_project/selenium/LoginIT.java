@@ -39,7 +39,8 @@ class LoginIT {
         WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
         options.addArguments(
-                "--headless", "--disable-gpu", "--no-sandbox", "--window-size=3840,2160",
+        		"--headless",
+                "--disable-gpu", "--no-sandbox", "--window-size=3840,2160",
                 "--disable-dev-shm-usage", "--remote-allow-origins=*", "--enable-javascript",
                 "--disable-extensions", "--disable-infobars", "--disable-popup-blocking", "--start-maximized"
         );
@@ -75,7 +76,7 @@ class LoginIT {
     void testAddRecipeFlow() {
         driver.get("http://localhost:" + port + "/index.html");
 
-        driver.findElement(By.id("login-btn")).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn"))).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
         driver.findElement(By.id("login-email")).sendKeys("user@example.com");
         driver.findElement(By.id("login-password")).sendKeys("Admin123!");
