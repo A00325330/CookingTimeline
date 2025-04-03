@@ -25,13 +25,17 @@ class RegisterIT {
 
     @LocalServerPort
     private int port;
+
+    private WebDriver driver;
+    
     @Autowired
     private DatabaseManager databaseManager;
-    private WebDriver driver;
 
     @BeforeAll
     void setupClass() {
         WebDriverManager.chromedriver().setup();
+        databaseManager.clearDatabase();
+        databaseManager.executeSetupScripts();
     }
 
     @BeforeEach
@@ -39,8 +43,6 @@ class RegisterIT {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--disable-gpu", "--no-sandbox", "--headless=new");
         driver = new ChromeDriver(options);
-        databaseManager.clearDatabase();
-        databaseManager.executeSetupScripts();
     }
 
     @AfterEach
@@ -48,6 +50,7 @@ class RegisterIT {
         if (driver != null) {
             driver.quit();
         }
+        databaseManager.clearDatabase();
     }
 
     @Test

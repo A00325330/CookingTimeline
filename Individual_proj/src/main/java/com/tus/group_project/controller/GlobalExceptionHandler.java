@@ -6,6 +6,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.tus.group_project.exception.RecipeNotFoundException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,5 +28,10 @@ public class GlobalExceptionHandler {
 
         // Return a 400 Bad Request with error details
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
+    
+    @ExceptionHandler(RecipeNotFoundException.class)
+    public ResponseEntity<String> handleRecipeNotFoundException(RecipeNotFoundException e) {
+    	return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 }

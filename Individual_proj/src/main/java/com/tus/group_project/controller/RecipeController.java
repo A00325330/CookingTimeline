@@ -3,6 +3,7 @@ package com.tus.group_project.controller;
 import com.tus.group_project.dao.TagRepository;
 import com.tus.group_project.dao.UserRepository;
 import com.tus.group_project.dto.RecipeDto;
+import com.tus.group_project.exception.RecipeNotFoundException;
 import com.tus.group_project.model.*;
 import com.tus.group_project.service.IRecipeService;
 import org.springframework.hateoas.*;
@@ -114,7 +115,7 @@ public class RecipeController {
 		UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 		User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
 
-		Recipe recipe = recipeService.getRecipeById(id).orElseThrow();
+		Recipe recipe = recipeService.getRecipeById(id).orElseThrow(() -> new RecipeNotFoundException("Recipe with id: " + id));
 
 		if (recipe.getVisibility() == Visibility.PUBLIC || recipe.getUser().equals(user)) {
 			return ResponseEntity.ok(buildRecipeModel(recipe, user));

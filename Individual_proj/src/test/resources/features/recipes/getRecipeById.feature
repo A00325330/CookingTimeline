@@ -16,4 +16,4 @@ Feature: Get recipe by ID
   Scenario: Attempt to get a recipe the user doesn't own
     Given path 'recipes', 999
     When method get
-    Then status 403
+    Then status 404
