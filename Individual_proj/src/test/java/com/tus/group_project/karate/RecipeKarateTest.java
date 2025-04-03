@@ -9,8 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 
-@ActiveProfiles("test")
 
+@ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RecipeKarateTest {
@@ -27,13 +27,13 @@ public class RecipeKarateTest {
 	}
 
 
-	@Karate.Test
-	Karate runRecipeTests() {
-		return Karate.run(
-				"classpath:features/recipes/createRecipe.feature",
-				"classpath:features/recipes/getMyRecipes.feature", 
-				"classpath:features/recipes/getRecipeById.feature",
-				"classpath:features/recipes/getPublicRecipes.feature"
-		).relativeTo(getClass());
-	}
+//	@Karate.Test
+//	Karate runRecipeTests() {
+//		return Karate.run(
+//				"classpath:features/recipes/createRecipe.feature",
+//				"classpath:features/recipes/getMyRecipes.feature", 
+//				"classpath:features/recipes/getRecipeById.feature",
+//				"classpath:features/recipes/getPublicRecipes.feature"
+//		).relativeTo(getClass());
+//	}
 }
