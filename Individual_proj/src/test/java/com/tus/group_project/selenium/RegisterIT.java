@@ -4,9 +4,12 @@ import org.junit.jupiter.api.*;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
+
+import com.tus.group_project.test_helper.DatabaseManager;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 
@@ -22,7 +25,8 @@ class RegisterIT {
 
     @LocalServerPort
     private int port;
-
+    @Autowired
+    private DatabaseManager databaseManager;
     private WebDriver driver;
 
     @BeforeAll
@@ -35,6 +39,8 @@ class RegisterIT {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--disable-gpu", "--no-sandbox", "--headless=new");
         driver = new ChromeDriver(options);
+        databaseManager.clearDatabase();
+        databaseManager.executeSetupScripts();
     }
 
     @AfterEach
