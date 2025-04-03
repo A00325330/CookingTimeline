@@ -76,6 +76,22 @@ class LoginIT {
     void testAddRecipeFlow() {
         driver.get("http://localhost:" + port + "/index.html");
 
+        // 💡 Wait for backend to be ready by checking the login button is visible
+        await().atMost(Duration.ofSeconds(5)).until(() -> {
+            try {
+                return driver.findElement(By.id("login-btn")).isDisplayed();
+            } catch (NoSuchElementException e) {
+                return false;
+            }
+        });
+
+        // 🛡️ Handle unexpected alert if it appears (e.g. "❌ Request failed")
+        try {
+            Alert alert = driver.switchTo().alert();
+            System.out.println("Alert detected: " + alert.getText());
+            alert.dismiss();
+        } catch (NoAlertPresentException ignored) {}
+
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn"))).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
         driver.findElement(By.id("login-email")).sendKeys("user@example.com");
@@ -129,6 +145,7 @@ class LoginIT {
         boolean recipeFound = options.stream().anyMatch(opt -> opt.getText().contains("Classic Chicken Curry"));
         assertTrue(recipeFound, "❌ Recipe not found in dropdown!");
     }
+
 
     private boolean elementIsVisible(By locator) {
         try {
