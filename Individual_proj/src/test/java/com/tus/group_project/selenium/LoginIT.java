@@ -72,63 +72,63 @@ class LoginIT {
         assertTrue(driver.findElement(By.id("logout-btn")).isDisplayed(), "❌ Logout button not visible after login");
     }
 
-//    @Test
-//    void testAddRecipeFlow() {
-//        driver.get("http://localhost:" + port + "/index.html");
-//
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn"))).click();
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
-//        driver.findElement(By.id("login-email")).sendKeys("user@example.com");
-//        driver.findElement(By.id("login-password")).sendKeys("Admin123!");
-//        wait.until(ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
-//
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-recipe-btn"))).click();
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("recipe-name")))
-//             .sendKeys("Classic Chicken Curry");
-//        driver.findElement(By.id("recipe-description")).sendKeys("A classic Indian curry recipe.");
-//
-//        driver.findElement(By.id("manual-tag")).sendKeys("indian");
-//        driver.findElement(By.id("add-tag-btn")).click();
-//
-//        String[][] ingredients = {
-//            {"Chick", "20", "Cook"},
-//            {"Onion", "5", "Fry"},
-//            {"Spices", "3", "Mix"}
-//        };
-//
-//        for (String[] ing : ingredients) {
-//            driver.findElement(By.id("ingredient-name")).sendKeys(ing[0]);
-//            driver.findElement(By.id("ingredient-time")).sendKeys(ing[1]);
-//            driver.findElement(By.id("ingredient-method")).sendKeys(ing[2]);
-//
-//            WebElement addBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("add-ingredient-btn")));
-//            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", addBtn);
-//            addBtn.click();
-//
-//            await().pollDelay(Duration.ofMillis(300)).until(() -> true);
-//        }
-//
-//        driver.findElement(By.id("submit-recipe-btn")).click();
-//
-//        await().atMost(Duration.ofSeconds(3)).until(() -> elementIsVisible(By.id("logout-btn")));
-//        driver.findElement(By.id("logout-btn")).click();
-//
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn")));
-//
-//        // Re-login
-//        driver.get("http://localhost:" + port + "/index.html");
-//        driver.findElement(By.id("login-btn")).click();
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
-//        driver.findElement(By.id("login-email")).sendKeys("user@example.com");
-//        driver.findElement(By.id("login-password")).sendKeys("Admin123!");
-//        wait.until(ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
-//
-//        WebElement dropdown = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("recipe-dropdown")));
-//        List<WebElement> options = dropdown.findElements(By.tagName("option"));
-//
-//        boolean recipeFound = options.stream().anyMatch(opt -> opt.getText().contains("Classic Chicken Curry"));
-//        assertTrue(recipeFound, "❌ Recipe not found in dropdown!");
-//    }
+    @Test
+    void testAddRecipeFlow() {
+        driver.get("http://localhost:" + port + "/index.html");
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn"))).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
+        driver.findElement(By.id("login-email")).sendKeys("user@example.com");
+        driver.findElement(By.id("login-password")).sendKeys("Admin123!");
+        wait.until(ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-recipe-btn"))).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("recipe-name")))
+             .sendKeys("Classic Chicken Curry");
+        driver.findElement(By.id("recipe-description")).sendKeys("A classic Indian curry recipe.");
+
+        driver.findElement(By.id("manual-tag")).sendKeys("indian");
+        driver.findElement(By.id("add-tag-btn")).click();
+
+        String[][] ingredients = {
+            {"Chick", "20", "Cook"},
+            {"Onion", "5", "Fry"},
+            {"Spices", "3", "Mix"}
+        };
+
+        for (String[] ing : ingredients) {
+            driver.findElement(By.id("ingredient-name")).sendKeys(ing[0]);
+            driver.findElement(By.id("ingredient-time")).sendKeys(ing[1]);
+            driver.findElement(By.id("ingredient-method")).sendKeys(ing[2]);
+
+            WebElement addBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("add-ingredient-btn")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", addBtn);
+            addBtn.click();
+
+            await().pollDelay(Duration.ofMillis(300)).until(() -> true);
+        }
+
+        driver.findElement(By.id("submit-recipe-btn")).click();
+
+        await().atMost(Duration.ofSeconds(3)).until(() -> elementIsVisible(By.id("logout-btn")));
+        driver.findElement(By.id("logout-btn")).click();
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn")));
+
+        // Re-login
+        driver.get("http://localhost:" + port + "/index.html");
+        driver.findElement(By.id("login-btn")).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
+        driver.findElement(By.id("login-email")).sendKeys("user@example.com");
+        driver.findElement(By.id("login-password")).sendKeys("Admin123!");
+        wait.until(ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
+
+        WebElement dropdown = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("recipe-dropdown")));
+        List<WebElement> options = dropdown.findElements(By.tagName("option"));
+
+        boolean recipeFound = options.stream().anyMatch(opt -> opt.getText().contains("Classic Chicken Curry"));
+        assertTrue(recipeFound, "❌ Recipe not found in dropdown!");
+    }
 
     private boolean elementIsVisible(By locator) {
         try {
