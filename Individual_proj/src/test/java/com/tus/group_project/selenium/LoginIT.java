@@ -22,7 +22,6 @@ import static org.awaitility.Awaitility.await;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-//@EnabledIfSystemProperty(named = "runSeleniumTests", matches = "true")
 class LoginIT {
 
     @LocalServerPort
@@ -39,7 +38,7 @@ class LoginIT {
         WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
         options.addArguments(
-        		"--headless",
+                "--headless",
                 "--disable-gpu", "--no-sandbox", "--window-size=3840,2160",
                 "--disable-dev-shm-usage", "--remote-allow-origins=*", "--enable-javascript",
                 "--disable-extensions", "--disable-infobars", "--disable-popup-blocking", "--start-maximized"
@@ -55,97 +54,81 @@ class LoginIT {
         if (driver != null) {
             driver.quit();
         }
-       // databaseManager.clearDatabase();
+        // databaseManager.clearDatabase(); // keep disabled as discussed
     }
 
     @Test
-    void testLoginSuccessAndNavigateToDashboard() {
-        driver.get("http://localhost:" + port + "/index.html");
+    void testAddRecipeFlow() {
+        // Ensure backend is up and frontend is ready
+        await().atMost(Duration.ofSeconds(10)).until(() -> {
+            try {
+                driver.get("http://localhost:" + port + "/index.html");
+                return driver.findElement(By.id("login-btn")).isDisplayed();
+            } catch (Exception e) {
+                return false;
+            }
+        });
 
+        // Handle alert from failed fetch if any
+        try {
+            Alert alert = driver.switchTo().alert();
+            System.out.println("Alert: " + alert.getText());
+            alert.dismiss();
+        } catch (NoAlertPresentException ignored) {}
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn"))).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
+        driver.findElement(By.id("login-email")).sendKeys("user@example.com");
+        driver.findElement(By.id("login-password")).sendKeys("Admin123!");
+        wait.until(ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-recipe-btn"))).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("recipe-name")))
+             .sendKeys("Classic Chicken Curry");
+        driver.findElement(By.id("recipe-description")).sendKeys("A classic Indian curry recipe.");
+
+        driver.findElement(By.id("manual-tag")).sendKeys("indian");
+        driver.findElement(By.id("add-tag-btn")).click();
+
+        String[][] ingredients = {
+            {"Chick", "20", "Cook"},
+            {"Onion", "5", "Fry"},
+            {"Spices", "3", "Mix"}
+        };
+
+        for (String[] ing : ingredients) {
+            driver.findElement(By.id("ingredient-name")).sendKeys(ing[0]);
+            driver.findElement(By.id("ingredient-time")).sendKeys(ing[1]);
+            driver.findElement(By.id("ingredient-method")).sendKeys(ing[2]);
+
+            WebElement addBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("add-ingredient-btn")));
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", addBtn);
+            addBtn.click();
+
+            await().pollDelay(Duration.ofMillis(300)).until(() -> true);
+        }
+
+        driver.findElement(By.id("submit-recipe-btn")).click();
+
+        await().atMost(Duration.ofSeconds(3)).until(() -> elementIsVisible(By.id("logout-btn")));
+        driver.findElement(By.id("logout-btn")).click();
+
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn")));
+
+        // Re-login
+        driver.get("http://localhost:" + port + "/index.html");
         driver.findElement(By.id("login-btn")).click();
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
         driver.findElement(By.id("login-email")).sendKeys("user@example.com");
         driver.findElement(By.id("login-password")).sendKeys("Admin123!");
-        driver.findElement(By.id("login-button")).click();
+        wait.until(ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
 
-        await().atMost(Duration.ofSeconds(5)).until(() -> elementIsVisible(By.id("logout-btn")));
-        assertTrue(driver.findElement(By.id("logout-btn")).isDisplayed(), "❌ Logout button not visible after login");
+        WebElement dropdown = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("recipe-dropdown")));
+        List<WebElement> options = dropdown.findElements(By.tagName("option"));
+
+        boolean recipeFound = options.stream().anyMatch(opt -> opt.getText().contains("Classic Chicken Curry"));
+        assertTrue(recipeFound, "❌ Recipe not found in dropdown!");
     }
-
-//    @Test
-//    void testAddRecipeFlow() {
-//        driver.get("http://localhost:" + port + "/index.html");
-//
-//        // 💡 Wait for backend to be ready by checking the login button is visible
-//        await().atMost(Duration.ofSeconds(5)).until(() -> {
-//            try {
-//                return driver.findElement(By.id("login-btn")).isDisplayed();
-//            } catch (NoSuchElementException e) {
-//                return false;
-//            }
-//        });
-//
-//        // 🛡️ Handle unexpected alert if it appears (e.g. "❌ Request failed")
-//        try {
-//            Alert alert = driver.switchTo().alert();
-//            System.out.println("Alert detected: " + alert.getText());
-//            alert.dismiss();
-//        } catch (NoAlertPresentException ignored) {}
-//
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn"))).click();
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
-//        driver.findElement(By.id("login-email")).sendKeys("user@example.com");
-//        driver.findElement(By.id("login-password")).sendKeys("Admin123!");
-//        wait.until(ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
-//
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("add-recipe-btn"))).click();
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("recipe-name")))
-//             .sendKeys("Classic Chicken Curry");
-//        driver.findElement(By.id("recipe-description")).sendKeys("A classic Indian curry recipe.");
-//
-//        driver.findElement(By.id("manual-tag")).sendKeys("indian");
-//        driver.findElement(By.id("add-tag-btn")).click();
-//
-//        String[][] ingredients = {
-//            {"Chick", "20", "Cook"},
-//            {"Onion", "5", "Fry"},
-//            {"Spices", "3", "Mix"}
-//        };
-//
-//        for (String[] ing : ingredients) {
-//            driver.findElement(By.id("ingredient-name")).sendKeys(ing[0]);
-//            driver.findElement(By.id("ingredient-time")).sendKeys(ing[1]);
-//            driver.findElement(By.id("ingredient-method")).sendKeys(ing[2]);
-//
-//            WebElement addBtn = wait.until(ExpectedConditions.elementToBeClickable(By.id("add-ingredient-btn")));
-//            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", addBtn);
-//            addBtn.click();
-//
-//            await().pollDelay(Duration.ofMillis(300)).until(() -> true);
-//        }
-//
-//        driver.findElement(By.id("submit-recipe-btn")).click();
-//
-//        await().atMost(Duration.ofSeconds(3)).until(() -> elementIsVisible(By.id("logout-btn")));
-//        driver.findElement(By.id("logout-btn")).click();
-//
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-btn")));
-//
-//        // Re-login
-//        driver.get("http://localhost:" + port + "/index.html");
-//        driver.findElement(By.id("login-btn")).click();
-//        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("login-email")));
-//        driver.findElement(By.id("login-email")).sendKeys("user@example.com");
-//        driver.findElement(By.id("login-password")).sendKeys("Admin123!");
-//        wait.until(ExpectedConditions.elementToBeClickable(By.id("login-button"))).click();
-//
-//        WebElement dropdown = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("recipe-dropdown")));
-//        List<WebElement> options = dropdown.findElements(By.tagName("option"));
-//
-//        boolean recipeFound = options.stream().anyMatch(opt -> opt.getText().contains("Classic Chicken Curry"));
-//        assertTrue(recipeFound, "❌ Recipe not found in dropdown!");
-//    }
-
 
     private boolean elementIsVisible(By locator) {
         try {
