@@ -65,7 +65,7 @@ class RecipeDtoTest {
         RecipeDto.IngredientDto ing = new RecipeDto.IngredientDto();
         ing.setName("Water");
         ing.setCookingTime(10);
-        ing.setCookingMethod("Boil");
+        ing.setCookingMethod("Fry");
 
         dto.setIngredients(List.of(ing));
 
