@@ -55,7 +55,7 @@ class LoginIT {
         if (driver != null) {
             driver.quit();
         }
-        databaseManager.clearDatabase();
+       // databaseManager.clearDatabase();
     }
 
     @Test
