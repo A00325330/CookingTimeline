@@ -33,6 +33,7 @@ public class RecipeKarateTest {
 				"classpath:features/recipes/createRecipe.feature",
 				"classpath:features/recipes/getMyRecipes.feature", 
 				"classpath:features/recipes/getRecipeById.feature",
-				"classpath:features/recipes/getPublicRecipes.feature").relativeTo(getClass());
+				"classpath:features/recipes/getPublicRecipes.feature"
+		).relativeTo(getClass());
 	}
 }
