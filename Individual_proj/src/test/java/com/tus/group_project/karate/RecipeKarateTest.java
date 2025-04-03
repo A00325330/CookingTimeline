@@ -29,8 +29,10 @@ public class RecipeKarateTest {
 
 	@Karate.Test
 	Karate runRecipeTests() {
-		return Karate.run("classpath:features/recipes/createRecipe.feature",
-				"classpath:features/recipes/getMyRecipes.feature", "classpath:features/recipes/getRecipeById.feature",
+		return Karate.run(
+				"classpath:features/recipes/createRecipe.feature",
+				"classpath:features/recipes/getMyRecipes.feature", 
+				"classpath:features/recipes/getRecipeById.feature",
 				"classpath:features/recipes/getPublicRecipes.feature").relativeTo(getClass());
 	}
 }
